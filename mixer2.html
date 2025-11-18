@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwei-Kanal-Audio-Mischpult-Simulation</title>
+    <!-- Einbindung von Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Eigene Stile für Fader, Knöpfe und Pegelanzeige */
+        body {
+            font-family: 'Inter', sans-serif, system-ui;
+        }
+
+        /* --- Styling für Drehregler --- */
+        .knob {
+            position: relative;
+            cursor: ns-resize;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) inset, 0 1px 1px rgba(255,255,255,0.1);
+        }
+        
+        .knob-pointer {
+            position: absolute;
+            left: calc(50% - 1.5px);
+            bottom: 50%;
+            width: 3px;
+            background: #60a5fa; /* Tailwind blue-400 */
+            border-radius: 2px;
+            transform-origin: bottom;
+            box-shadow: 0 0 3px rgba(96, 165, 250, 0.7);
+        }
+
+        /* Großer Regler (Gain) */
+        .knob-lg { width: 4.5rem; height: 4.5rem; } /* w-18, h-18 */
+        .knob-lg .knob-pointer { height: 45%; }
+        
+        /* Mittlerer Regler (Aux/Pan) */
+        .knob-md { width: 3rem; height: 3rem; } /* w-12, h-12 */
+        .knob-md .knob-pointer { height: 40%; width: 2px; left: calc(50% - 1px); }
+
+        /* --- Styling für Routing-Tasten --- */
+        .route-btn {
+            transition: all 0.1s ease-in-out;
+            border: 1px solid #4b5563; /* gray-600 */
+        }
+        .route-btn.active {
+            background-color: #f59e0b; /* amber-500 */
+            color: #1f2937; /* gray-800 */
+            border-color: #fcd34d; /* amber-300 */
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+        }
+
+        /* --- Styling für ALLE Pegelanzeigen (Basis) --- */
+        .meter-led, .meter-tiny-led {
+            background-color: #374151; /* gray-700 (aus) */
+            box-shadow: 0 0 2px rgba(0,0,0,0.5) inset;
+            transition: background-color 0.05s linear;
+        }
+
+        /* --- Kanal 1 Farben (Fuchsig/Orange-Rot) --- */
+        /* Niedriger Pegel (statt Grün) */
+        .meter-led.ch1-low-active, .meter-tiny-led.ch1-low-active { 
+            background-color: #f59e0b; /* Amber 500 */
+            box-shadow: 0 0 5px #f59e0b; 
+        }
+        /* Mittlerer Pegel (statt Gelb) */
+        .meter-led.ch1-mid-active, .meter-tiny-led.ch1-mid-active { 
+            background-color: #ea580c; /* Orange 600 */
+            box-shadow: 0 0 5px #ea580c; 
+        }
+        /* Hoher Pegel/Clipping (statt Rot) */
+        .meter-led.ch1-high-active, .meter-tiny-led.ch1-high-active { 
+            background-color: #b91c1c; /* Red 700 */
+            box-shadow: 0 0 5px #b91c1c; 
+        }
+        
+        /* --- Kanal 2 Farben (Blau-Schema - Unverändert) --- */
+        /* Niedriger Pegel (statt Grün) */
+        .meter-led.blue-active, .meter-tiny-led.blue-active { 
+            background-color: #3b82f6; /* Blue 500 */
+            box-shadow: 0 0 5px #3b82f6; 
+        } 
+        /* Mittlerer Pegel (statt Gelb) */
+        .meter-led.blue-mid-active, .meter-tiny-led.blue-mid-active { 
+            background-color: #60a5fa; /* Blue 400 */
+            box-shadow: 0 0 5px #60a5fa; 
+        } 
+        /* Hoher Pegel/Clipping (statt Rot) */
+        .meter-led.blue-high-active, .meter-tiny-led.blue-high-active { 
+            background-color: #1d4ed8; /* Blue 700 */
+            box-shadow: 0 0 5px #1d4ed8; 
+        } 
+
+        /* --- Styling für kleine Kopfhörer-Pegelanzeige --- */
+        .small-meter-container {
+            background-color: #111827;
+            padding: 2px 1px;
+        }
+        .meter-tiny-led {
+            margin-top: 1px;
+        }
+
+        /* --- Styling für vertikalen Fader (robuster) --- */
+        input[type=range].fader {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent; 
+            cursor: ns-resize;
+            width: 232px; 
+            height: 32px; 
+        }
+
+        /* Fader-Track (Schiene) WebKit */
+        input[type=range].fader::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 12px;
+            background: #111827;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+        }
+
+        /* Fader-Daumen (Griff) WebKit */
+        input[type=range].fader::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px;
+            height: 52px;
+            background: #d1d5db;
+            border: 1px solid #1f2937;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            margin-top: -20px;
+        }
+
+        /* Fader-Track (Schiene) Firefox */
+        input[type=range].fader::-moz-range-track {
+            width: 100%;
+            height: 12px;
+            background: #111827;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+        }
+        
+        /* Fader-Daumen (Griff) Firefox */
+        input[type=range].fader::-moz-range-thumb {
+            width: 32px;
+            height: 52px;
+            background: #d1d5db;
+            border: 1px solid #1f2937;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            cursor: ns-resize;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Audio Start Button -->
+    <div class="mb-4 text-center text-gray-300">
+        <button id="start-audio" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 ease-in-out">
+            Start Audio
+        </button>
+        <p id="audio-status" class="text-xs text-gray-500 mt-1">Audio context is suspended</p>
+    </div>
+
+    <!-- Wrapper für Kopfhörer-Sektion und Kanalzüge -->
+    <div class="flex items-start justify-center gap-6">
+
+        <!-- KOPFHÖRER-SEKTION (Zwei Meter pro Muschel) -->
+        <div id="hp-section" class="flex flex-col gap-8 pt-6 pr-4 text-gray-300">
+            
+            <!-- HP 1 (AUX 1: L / AUX 2: R) -->
+            <div class="flex flex-col items-center space-y-2">
+                <span class="text-sm font-bold uppercase tracking-wider">HP 1</span>
+                <span class="text-xs text-gray-500 font-semibold">(AUX 1 L | AUX 2 R)</span>
+                <!-- Headphone 1 SVG -->
+                <svg id="hp1-meter-svg" class="w-24 h-18" viewBox="0 0 140 120" fill="none">
+                    <!-- Headband (zentriert auf 70) -->
+                    <path d="M 40 50 A 30 30 0 0 1 100 50" stroke="#9ca3af" stroke-width="8" stroke-linecap="round"/>
+                    
+                    <!-- Earcup Left (AUX 1 Bus) -->
+                    <circle cx="40" cy="60" r="15" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+                    <text x="5" y="65" font-size="16" fill="#f87171" text-anchor="start" font-weight="bold">L</text>
+                    <!-- Meter-Labels (Farben zeigen die Quelle) -->
+                    <text x="31" y="45" font-size="8" fill="#f59e0b" text-anchor="middle" font-weight="bold">CH1</text>
+                    <text x="49" y="45" font-size="8" fill="#3b82f6" text-anchor="middle" font-weight="bold">CH2</text>
+                    
+                    <!-- Meter Container (AUX 1 Bus: CH1/Fuchsig & CH2/Blue) -->
+                    <foreignObject x="30" y="50" width="20" height="25">
+                        <div class="flex h-full w-full justify-center" style="box-sizing: border-box; overflow: hidden;">
+                            <!-- Meter 1 (CH1 - Fuchsig Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 0.5px 2px 1px;" data-channel-id="1">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH1" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH1" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH1" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH1" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH1" data-level="5"></div>
+                            </div>
+                            <!-- Meter 2 (CH2 - Blue Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 1px 2px 0.5px;" data-channel-id="2">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH2" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH2" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH2" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH2" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX1-CH2" data-level="5"></div>
+                            </div>
+                        </div>
+                    </foreignObject>
+
+                    <!-- Earcup Right (AUX 2 Bus) -->
+                    <circle cx="100" cy="60" r="15" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+                    <text x="135" y="65" font-size="16" fill="#f87171" text-anchor="end" font-weight="bold">R</text>
+                    <!-- Meter-Labels (Farben zeigen die Quelle) -->
+                    <text x="91" y="45" font-size="8" fill="#f59e0b" text-anchor="middle" font-weight="bold">CH1</text>
+                    <text x="109" y="45" font-size="8" fill="#3b82f6" text-anchor="middle" font-weight="bold">CH2</text>
+                    
+                    <!-- Meter Container (AUX 2 Bus: CH1/Fuchsig & CH2/Blue) -->
+                    <foreignObject x="90" y="50" width="20" height="25">
+                        <div class="flex h-full w-full justify-center" style="box-sizing: border-box; overflow: hidden;">
+                            <!-- Meter 1 (CH1 - Fuchsig Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 0.5px 2px 1px;" data-channel-id="1">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH1" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH1" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH1" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH1" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH1" data-level="5"></div>
+                            </div>
+                            <!-- Meter 2 (CH2 - Blue Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 1px 2px 0.5px;" data-channel-id="2">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH2" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH2" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH2" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH2" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX2-CH2" data-level="5"></div>
+                            </div>
+                        </div>
+                    </foreignObject>
+                </svg>
+            </div>
+
+            <!-- HP 2 (AUX 3: L / AUX 4: R) -->
+            <div class="flex flex-col items-center space-y-2">
+                <span class="text-sm font-bold uppercase tracking-wider">HP 2</span>
+                <span class="text-xs text-gray-500 font-semibold">(AUX 3 L | AUX 4 R)</span>
+                <!-- Headphone 2 SVG -->
+                <svg id="hp2-meter-svg" class="w-24 h-18" viewBox="0 0 140 120" fill="none">
+                    <!-- Headband -->
+                    <path d="M 40 50 A 30 30 0 0 1 100 50" stroke="#9ca3af" stroke-width="8" stroke-linecap="round"/>
+                    
+                    <!-- Earcup Left (AUX 3 Bus) -->
+                    <circle cx="40" cy="60" r="15" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+                    <text x="5" y="65" font-size="16" fill="#f87171" text-anchor="start" font-weight="bold">L</text>
+                    <!-- Meter-Labels (Farben zeigen die Quelle) -->
+                    <text x="31" y="45" font-size="8" fill="#f59e0b" text-anchor="middle" font-weight="bold">CH1</text>
+                    <text x="49" y="45" font-size="8" fill="#3b82f6" text-anchor="middle" font-weight="bold">CH2</text>
+
+                    <!-- Meter Container (AUX 3 Bus: CH1/Fuchsig & CH2/Blue) -->
+                    <foreignObject x="30" y="50" width="20" height="25">
+                        <div class="flex h-full w-full justify-center" style="box-sizing: border-box; overflow: hidden;">
+                            <!-- Meter 1 (CH1 - Fuchsig Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 0.5px 2px 1px;" data-channel-id="1">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH1" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH1" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH1" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH1" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH1" data-level="5"></div>
+                            </div>
+                            <!-- Meter 2 (CH2 - Blue Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 1px 2px 0.5px;" data-channel-id="2">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH2" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH2" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH2" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH2" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX3-CH2" data-level="5"></div>
+                            </div>
+                        </div>
+                    </foreignObject>
+
+                    <!-- Earcup Right (AUX 4 Bus) -->
+                    <circle cx="100" cy="60" r="15" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+                    <text x="135" y="65" font-size="16" fill="#f87171" text-anchor="end" font-weight="bold">R</text>
+                    <!-- Meter-Labels (Farben zeigen die Quelle) -->
+                    <text x="91" y="45" font-size="8" fill="#f59e0b" text-anchor="middle" font-weight="bold">CH1</text>
+                    <text x="109" y="45" font-size="8" fill="#3b82f6" text-anchor="middle" font-weight="bold">CH2</text>
+
+                    <!-- Meter Container (AUX 4 Bus: CH1/Fuchsig & CH2/Blue) -->
+                    <foreignObject x="90" y="50" width="20" height="25">
+                        <div class="flex h-full w-full justify-center" style="box-sizing: border-box; overflow: hidden;">
+                            <!-- Meter 1 (CH1 - Fuchsig Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 0.5px 2px 1px;" data-channel-id="1">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH1" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH1" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH1" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH1" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH1" data-level="5"></div>
+                            </div>
+                            <!-- Meter 2 (CH2 - Blue Schema) -->
+                            <div class="small-meter-container w-1/2 flex flex-col-reverse justify-end gap-0.5" style="padding: 2px 1px 2px 0.5px;" data-channel-id="2">
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH2" data-level="1"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH2" data-level="2"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH2" data-level="3"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH2" data-level="4"></div>
+                                <div class="meter-tiny-led h-1/5" data-meter-id="AUX4-CH2" data-level="5"></div>
+                            </div>
+                        </div>
+                    </foreignObject>
+                </svg>
+            </div>
+        </div>
+        <!-- ENDE KOPFHÖRER-SEKTION -->
+
+        <!-- Start: Kanalzug 1 -->
+        <div class="channel-strip bg-gray-800 text-gray-300 p-4 rounded-lg shadow-2xl border border-gray-700 w-48">
+            <div class="space-y-6">
+
+                <!-- 1. Gain-Regler -->
+                <div class="flex flex-col items-center space-y-2">
+                    <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
+                    <div id="knob-gain-c1" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
+                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="1">
+                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Aux-Sends (4x) -->
+                <div class="bg-gray-900/50 p-2 rounded-md border border-gray-700">
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- AUX 1 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 1</label>
+                            <div id="knob-aux1-c1" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain1" data-channel="1">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 2 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 2</label>
+                            <div id="knob-aux2-c1" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain2" data-channel="1">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 3 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 3</label>
+                            <div id="knob-aux3-c1" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain3" data-channel="1">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 4 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 4</label>
+                            <div id="knob-aux4-c1" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain4" data-channel="1">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Panorama -->
+                <div class="flex flex-col items-center space-y-1">
+                    <label class="text-sm font-bold uppercase tracking-wider">Pan</label>
+                    <div id="knob-pan-c1" class="knob knob-md bg-gray-700 border border-gray-600" 
+                        data-angle="0" data-min-angle="-60" data-max-angle="60" data-target="panner" data-channel="1">
+                        <div class="knob-pointer" style="transform: rotate(0deg);"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Routing-Buttons -->
+                <div class="flex flex-col items-center space-y-2">
+                    <button class="route-btn route-btn-c1 w-24 py-1 text-xs font-bold rounded bg-gray-700 active">MAIN</button>
+                    <button class="route-btn route-btn-c1 w-24 py-1 text-xs font-bold rounded bg-gray-900 text-gray-500">G1-2</button>
+                    <button class="route-btn route-btn-c1 w-24 py-1 text-xs font-bold rounded bg-gray-900 text-gray-500">G3-4</button>
+                </div>
+
+                <!-- 5. & 6. Fader und Pegelanzeige -->
+                <div class="flex justify-center gap-4 h-64 pt-4">
+                    
+                    <!-- Pegelanzeige (Kanal 1 - Fuchsig-Schema) -->
+                    <div class="flex flex-col items-center">
+                        <div id="level-meter-c1" class="w-6 h-full bg-gray-900 rounded-md border border-gray-700 p-1.5 flex flex-col gap-1.5" data-channel-id="1">
+                            <!-- LEDs (12 Segmente) -->
+                            <div class="meter-led red h-full rounded-sm" data-level="12"></div>
+                            <div class="meter-led yellow h-full rounded-sm" data-level="11"></div>
+                            <div class="meter-led yellow h-full rounded-sm" data-level="10"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="9"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="8"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="7"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="6"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="5"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="4"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="3"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="2"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="1"></div>
+                        </div>
+                        <span class="text-xs font-bold mt-2">LVL</span>
+                    </div>
+
+                    <!-- Fader -->
+                    <div class="flex flex-col items-center h-full">
+                        <div class="relative w-12 flex-1 flex items-center justify-center">
+                            <input type="range" id="fader-c1" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="1">
+                        </div>
+                        <label for="fader-c1" class="text-sm font-bold mt-2">CH 1</label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- Ende: Kanalzug 1 -->
+
+        <!-- Start: Kanalzug 2 -->
+        <div class="channel-strip bg-gray-800 text-gray-300 p-4 rounded-lg shadow-2xl border border-gray-700 w-48">
+            <div class="space-y-6">
+
+                <!-- 1. Gain-Regler -->
+                <div class="flex flex-col items-center space-y-2">
+                    <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
+                    <div id="knob-gain-c2" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
+                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="2">
+                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Aux-Sends (4x) -->
+                <div class="bg-gray-900/50 p-2 rounded-md border border-gray-700">
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- AUX 1 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 1</label>
+                            <div id="knob-aux1-c2" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain1" data-channel="2">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 2 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 2</label>
+                            <div id="knob-aux2-c2" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain2" data-channel="2">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 3 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 3</label>
+                            <div id="knob-aux3-c2" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain3" data-channel="2">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                        <!-- AUX 4 -->
+                        <div class="flex flex-col items-center space-y-1">
+                            <label class="text-xs font-semibold">AUX 4</label>
+                            <div id="knob-aux4-c2" class="knob knob-md bg-gray-700 border border-gray-600" 
+                                data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="auxGain4" data-channel="2">
+                                <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Panorama -->
+                <div class="flex flex-col items-center space-y-1">
+                    <label class="text-sm font-bold uppercase tracking-wider">Pan</label>
+                    <div id="knob-pan-c2" class="knob knob-md bg-gray-700 border border-gray-600" 
+                        data-angle="0" data-min-angle="-60" data-max-angle="60" data-target="panner" data-channel="2">
+                        <div class="knob-pointer" style="transform: rotate(0deg);"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Routing-Buttons -->
+                <div class="flex flex-col items-center space-y-2">
+                    <button class="route-btn route-btn-c2 w-24 py-1 text-xs font-bold rounded bg-gray-700 active">MAIN</button>
+                    <button class="route-btn route-btn-c2 w-24 py-1 text-xs font-bold rounded bg-gray-900 text-gray-500">G1-2</button>
+                    <button class="route-btn route-btn-c2 w-24 py-1 text-xs font-bold rounded bg-gray-900 text-gray-500">G3-4</button>
+                </div>
+
+                <!-- 5. & 6. Fader und Pegelanzeige -->
+                <div class="flex justify-center gap-4 h-64 pt-4">
+                    
+                    <!-- Pegelanzeige (Kanal 2 - Blau-Schema) -->
+                    <div class="flex flex-col items-center">
+                        <div id="level-meter-c2" class="w-6 h-full bg-gray-900 rounded-md border border-gray-700 p-1.5 flex flex-col gap-1.5" data-channel-id="2">
+                            <!-- LEDs (12 Segmente) -->
+                            <div class="meter-led red h-full rounded-sm" data-level="12"></div>
+                            <div class="meter-led yellow h-full rounded-sm" data-level="11"></div>
+                            <div class="meter-led yellow h-full rounded-sm" data-level="10"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="9"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="8"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="7"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="6"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="5"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="4"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="3"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="2"></div>
+                            <div class="meter-led green h-full rounded-sm" data-level="1"></div>
+                        </div>
+                        <span class="text-xs font-bold mt-2">LVL</span>
+                    </div>
+
+                    <!-- Fader -->
+                    <div class="flex flex-col items-center h-full">
+                        <div class="relative w-12 flex-1 flex items-center justify-center">
+                            <input type="range" id="fader-c2" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="2">
+                        </div>
+                        <label for="fader-c2" class="text-sm font-bold mt-2">CH 2</label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- Ende: Kanalzug 2 -->
+
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Web Audio API Setup ---
+            let audioCtx;
+            
+            // Meter IDs
+            const auxMeterIds = ['AUX1-CH1', 'AUX1-CH2', 'AUX2-CH1', 'AUX2-CH2', 'AUX3-CH1', 'AUX3-CH2', 'AUX4-CH1', 'AUX4-CH2'];
+            
+            // SHRED NODES (Aux Bus Analysers)
+            const auxMeters = {};
+            
+            // CHANNEL DATA STRUCTURE
+            const channels = {
+                1: { 
+                     // ... Audio Nodes ...
+                     fader: document.getElementById('fader-c1'),
+                     knobs: document.querySelectorAll('.knob[data-channel="1"]'),
+                     ledsMain: document.querySelectorAll('#level-meter-c1 .meter-led'),
+                     channelId: 1 // Für Meter-Update
+                },
+                2: { 
+                     // ... Audio Nodes ...
+                     fader: document.getElementById('fader-c2'),
+                     knobs: document.querySelectorAll('.knob[data-channel="2"]'),
+                     ledsMain: document.querySelectorAll('#level-meter-c2 .meter-led'),
+                     channelId: 2 // Für Meter-Update
+                }
+            };
+            
+            const totalLedsMain = channels[1].ledsMain.length;
+            const totalLedsHP = 5; // Alle HP-Meter haben 5 LEDs
+            
+            const allKnobs = document.querySelectorAll('.knob');
+            const startButton = document.getElementById('start-audio');
+            const statusEl = document.getElementById('audio-status');
+
+            // --- NEUE KONSTANTEN FÜR DIE VERSTÄRKUNG ---
+            // Max Gain für den Input Gain Regler (2.0)
+            const MAX_INPUT_GAIN = 0.1; 
+            // Max Gain für die AUX Sends 
+            const MAX_AUX_GAIN = 10.0;
+
+
+            // Hilfsfunktion: Wert von einem Bereich auf einen anderen abbilden
+            function mapRange(value, inMin, inMax, outMin, outMax) {
+                return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+            }
+
+            // Erstellt eine Verzerrungskurve für den WaveShaper
+            function makeDistortionCurve(k = 5) {
+                const n_samples = 44100;
+                const curve = new Float32Array(n_samples);
+                for (let i = 0; i < n_samples; ++i) {
+                    const x = i * 2 / n_samples - 1;
+                    curve[i] = Math.tanh(x * k);
+                }
+                return curve;
+            }
+
+            // Initialisiert die Audio-Kette für einen Kanal
+            function setupChannel(id, freq) {
+                const ch = channels[id];
+                
+                // --- KNOTEN ERSTELLEN ---
+                ch.oscillator = audioCtx.createOscillator();
+                ch.oscillator.type = 'sine';
+                ch.oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+
+                ch.inputGain = audioCtx.createGain(); 
+                ch.inputSplitter = audioCtx.createGain(); // Verteiler-Knoten für Main und Aux
+                ch.distortion = audioCtx.createWaveShaper();
+                ch.distortion.curve = makeDistortionCurve(5);
+                ch.distortion.oversample = '4x';
+                ch.panner = audioCtx.createStereoPanner();
+                ch.faderGain = audioCtx.createGain();
+                ch.analyser = audioCtx.createAnalyser();
+                ch.analyser.fftSize = 512;
+                ch.dataArrayMain = new Float32Array(ch.analyser.fftSize);
+
+                // AUX-Sends (pro Kanal)
+                ch.auxGain1 = audioCtx.createGain();
+                ch.auxGain2 = audioCtx.createGain();
+                ch.auxGain3 = audioCtx.createGain();
+                ch.auxGain4 = audioCtx.createGain();
+                
+                // --- AUDIO-KETTE VERBINDEN ---
+                
+                ch.oscillator.connect(ch.inputGain);
+                ch.inputGain.connect(ch.inputSplitter);
+                
+                // Hauptkanal-Pfad (der hörbare Pfad)
+                ch.inputSplitter.connect(ch.distortion);
+                ch.distortion.connect(ch.panner); 
+                ch.panner.connect(ch.faderGain);
+                ch.faderGain.connect(ch.analyser);
+                ch.analyser.connect(audioCtx.destination); // Main-Out (Hörbarer Ausgang)
+
+                // AUX-Send-Pfade (NUR für Metering/Messung)
+                // Diese Pfade führen NICHT zum audioCtx.destination
+                ch.inputSplitter.connect(ch.auxGain1); 
+                ch.auxGain1.connect(auxMeters['AUX1-CH' + id].analyser);
+                
+                ch.inputSplitter.connect(ch.auxGain2); 
+                ch.auxGain2.connect(auxMeters['AUX2-CH' + id].analyser);
+
+                ch.inputSplitter.connect(ch.auxGain3); 
+                ch.auxGain3.connect(auxMeters['AUX3-CH' + id].analyser);
+
+                ch.inputSplitter.connect(ch.auxGain4); 
+                ch.auxGain4.connect(auxMeters['AUX4-CH' + id].analyser);
+
+                ch.oscillator.start();
+            }
+
+            // Audio-Initialisierung
+            function initAudio() {
+                if (audioCtx) {
+                    audioCtx.resume();
+                    return;
+                }
+                
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // --- GEMEINSAME AUX BUS ANALYSERS ERSTELLEN ---
+                auxMeterIds.forEach(id => {
+                    const meter = auxMeters[id] = {};
+                    
+                    meter.analyser = audioCtx.createAnalyser();
+                    meter.analyser.fftSize = 512;
+                    meter.dataArray = new Float32Array(meter.analyser.fftSize);
+                    meter.leds = document.querySelectorAll(`[data-meter-id="${id}"]`);
+
+                    // Die AUX Analysers dienen NUR zum Messen (Metering). Sie dürfen NICHT mit audioCtx.destination verbunden werden, 
+                    // da sie sonst zusätzlich zum Hauptkanal hörbar wären. Die Analyser funktionieren als "Taps" auch ohne direkten Output.
+                });
+
+
+                // --- Kanäle initialisieren ---
+                setupChannel(1, 440); // Kanal 1: 440 Hz Sinus (Fuchsig)
+                setupChannel(2, 660); // Kanal 2: 660 Hz Sinus (Blau)
+                
+                // --- ANFANGSWERTE SETZEN ---
+                allKnobs.forEach(knob => {
+                    updateAudioParameter(knob);
+                });
+
+                channels[1].fader.addEventListener('input', () => updateFader(1));
+                channels[2].fader.addEventListener('input', () => updateFader(2));
+                
+                updateFader(1);
+                updateFader(2);
+
+                startButton.textContent = "Audio Context Running";
+                startButton.disabled = true;
+                statusEl.textContent = "Audio is ON (CH 1: 440Hz, CH 2: 660Hz)";
+                
+                // Sicherstellen, dass der Kontext läuft
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                // Startet die Visualisierungsschleife
+                visualize();
+            }
+            
+            // Funktion zur Aktualisierung des Audio-Parameters eines Knobs
+            function updateAudioParameter(knob) {
+                if (!audioCtx) return;
+
+                const target = knob.dataset.target;
+                const channelId = parseInt(knob.dataset.channel);
+                const newAngle = parseFloat(knob.dataset.angle);
+                const ch = channels[channelId];
+                const now = audioCtx.currentTime;
+
+                if (target === 'inputGain') {
+                    // Verwende den MAX_INPUT_GAIN (2.0)
+                    const gainValue = mapRange(newAngle, -135, 135, 0, MAX_INPUT_GAIN);
+                    // setTargetAtTime ist robuster für Live-Änderungen als setValueAtTime
+                    ch.inputGain.gain.setTargetAtTime(gainValue, now, 0.015);
+                    
+                    // DEBUG-Ausgabe für den User
+                    statusEl.textContent = `CH${channelId} Gain: ${gainValue.toFixed(2)}`;
+                    
+                } else if (target && target.startsWith('auxGain')) {
+                    // Max Aux Gain beibehalten (0.5)
+                    const gainValue = mapRange(newAngle, -135, 135, 0, MAX_AUX_GAIN);
+                    ch[target].gain.setTargetAtTime(gainValue, now, 0.015);
+
+                    // Debug-Ausgabe nur für AUX
+                    statusEl.textContent = `CH${channelId} ${target}: ${gainValue.toFixed(2)}`;
+                } else if (target === 'panner') {
+                    const panValue = mapRange(newAngle, -60, 60, -1, 1);
+                    ch.panner.pan.setTargetAtTime(panValue, now, 0.015);
+                    
+                    statusEl.textContent = `CH${channelId} Pan: ${panValue.toFixed(2)}`;
+                }
+            }
+
+            // Funktion zur Aktualisierung des Faders
+            function updateFader(channelId) {
+                if (!audioCtx) return;
+                const ch = channels[channelId];
+                const now = audioCtx.currentTime;
+                // Max Fader Gain auf 1.0
+                const gainValue = mapRange(ch.fader.value, 0, 127, 0, 1.0);
+                ch.faderGain.gain.setTargetAtTime(gainValue, now, 0.015);
+                
+                // Status-Update auch für Fader
+                statusEl.textContent = `CH${channelId} Fader: ${gainValue.toFixed(2)}`;
+            }
+
+            // --- Logik für Drehregler (Unverändert) ---
+            let activeKnob = null;
+            let startY = 0;
+            let startAngle = 0;
+
+            allKnobs.forEach(knob => {
+                knob.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    activeKnob = knob;
+                    startY = e.clientY;
+                    startAngle = parseFloat(knob.dataset.angle);
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+
+            function onMouseMove(e) {
+                if (!activeKnob) return;
+                
+                const deltaY = startY - e.clientY;
+                const sensitivity = 1.5;
+                let newAngle = startAngle + (deltaY * sensitivity);
+
+                const minAngle = parseFloat(activeKnob.dataset.minAngle);
+                const maxAngle = parseFloat(activeKnob.dataset.maxAngle);
+                newAngle = Math.max(minAngle, Math.min(maxAngle, newAngle));
+                
+                activeKnob.dataset.angle = newAngle;
+                activeKnob.querySelector('.knob-pointer').style.transform = `rotate(${newAngle}deg)`;
+
+                updateAudioParameter(activeKnob);
+            }
+
+            function onMouseUp() {
+                activeKnob = null;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+            // --- Logik für Routing-Tasten (Unverändert) ---
+            document.querySelectorAll('.channel-strip').forEach((strip, index) => {
+                const channelId = index + 1;
+                const routeButtons = strip.querySelectorAll(`.route-btn-c${channelId}`);
+
+                routeButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        routeButtons.forEach(btn => {
+                            if (btn !== button) {
+                                btn.classList.remove('active', 'bg-gray-700');
+                                btn.classList.add('bg-gray-900', 'text-gray-500');
+                            }
+                        });
+
+                        button.classList.add('active', 'bg-gray-700');
+                        button.classList.remove('bg-gray-900', 'text-gray-500');
+                    });
+                });
+            });
+
+            // --- Pegelanzeige-Logik mit Farbunterscheidung ---
+            // Funktion zur Aktualisierung eines Meters (Main oder HP)
+            function updateMeter(analyserNode, dataArray, leds, totalLeds, channelId) {
+                analyserNode.getFloatTimeDomainData(dataArray);
+
+                let peak = 0.0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    const absValue = Math.abs(dataArray[i]);
+                    if (absValue > peak) {
+                        peak = absValue;
+                    }
+                }
+                
+                // Normalisiere Peak auf den Anzeigebereich (z.B. 1.1)
+                const displayPeak = Math.min(peak, 1.1) / 1.1; 
+                const ledsToShow = Math.ceil(displayPeak * totalLeds);
+
+                // Bestimme die Farbschwellen basierend auf der Segmentanzahl
+                let lowThreshold, midThreshold;
+                if (totalLeds === 12) { // Main Meter
+                    lowThreshold = 8;  
+                    midThreshold = 11; 
+                } else { // HP Meter (5 Segmente)
+                    lowThreshold = 3;  
+                    midThreshold = 4;  
+                }
+
+                const isChannel2 = channelId === 2;
+
+                // Definiere die Farbgruppen basierend auf dem Kanal
+                let highClass, midClass, lowClass;
+
+                if (isChannel2) {
+                    // Kanal 2: Blau-Schema
+                    highClass = 'blue-high-active';
+                    midClass = 'blue-mid-active';
+                    lowClass = 'blue-active';
+                } else {
+                    // Kanal 1: Fuchsig/Orange-Rot-Schema
+                    highClass = 'ch1-high-active';
+                    midClass = 'ch1-mid-active';
+                    lowClass = 'ch1-low-active';
+                }
+
+                const allClasses = ['ch1-low-active', 'ch1-mid-active', 'ch1-high-active', 'blue-active', 'blue-mid-active', 'blue-high-active'];
+
+
+                leds.forEach((led) => {
+                    const ledLevel = parseInt(led.dataset.level); // 1 (unten) bis 12/5 (oben)
+                    
+                    // Entferne alle aktiven Farben (für Fade-Out)
+                    led.classList.remove(...allClasses);
+                    
+                    if (ledLevel <= ledsToShow) {
+                        
+                        if (ledLevel > midThreshold) { 
+                            // Höchster Pegel
+                            led.classList.add(highClass);
+                        } else if (ledLevel > lowThreshold) { 
+                            // Mittlerer Pegel
+                            led.classList.add(midClass);
+                        } else { 
+                            // Niedriger Pegel
+                            led.classList.add(lowClass);
+                        }
+                    }
+                });
+            }
+
+
+            function visualize() {
+                requestAnimationFrame(visualize);
+                
+                if (!audioCtx) return; 
+
+                // 1. Haupt-Pegelanzeigen pro Kanal aktualisieren
+                // Channel 1 (Fuchsig-Schema)
+                updateMeter(channels[1].analyser, channels[1].dataArrayMain, channels[1].ledsMain, totalLedsMain, channels[1].channelId);
+                // Channel 2 (Blau-Schema)
+                updateMeter(channels[2].analyser, channels[2].dataArrayMain, channels[2].ledsMain, totalLedsMain, channels[2].channelId);
+
+                // 2. Kopfhörer-Pegelanzeigen (8 dedizierte Busse) aktualisieren
+                for (const id in auxMeters) {
+                    const meter = auxMeters[id];
+                    // Channel ID aus dem data-meter-id parsen (z.B. 'AUX1-CH2' -> 2)
+                    const channelIdMatch = id.match(/CH(\d)$/);
+                    const channelId = channelIdMatch ? parseInt(channelIdMatch[1]) : 1; // Default zu CH1
+                    
+                    updateMeter(meter.analyser, meter.dataArray, meter.leds, totalLedsHP, channelId);
+                }
+            }
+
+            // Start-Button Event Listener
+            startButton.addEventListener('click', initAudio);
+        });
+    </script>
+
+</body>
+</html>
