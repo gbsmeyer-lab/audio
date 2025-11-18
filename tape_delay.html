@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vintage Band-Echo Simulator</title>
+    <!-- Lade Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the tape reel animation and overall dark theme */
+        :root {
+            --bg-color: #1e293b; /* Slate-800 */
+            --card-color: #334155; /* Slate-700 */
+            --accent-color: #10b981; /* Emerald-500 (Wird nicht für den Anfasser verwendet) */
+            --yellow-color: #fcd34d; /* Yellow-300 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .card {
+            background-color: var(--card-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* FIX: Direkte CSS-Definitionen für Schieberegler-Anfasser (jetzt gelb) */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--yellow-color); /* Angepasst an Yellow-300 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.5); /* Gelber Schimmer (Yellow-300 rgba) */
+            transition: background 0.3s, box-shadow 0.3s;
+            margin-top: -7px; 
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--yellow-color); /* Angepasst an Yellow-300 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.5); /* Gelber Schimmer (Yellow-300 rgba) */
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        /* Styling for the tape visualization */
+        .tape-container {
+            background-color: #1e293b;
+            border-radius: 1rem;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .reel {
+            width: 80px;
+            height: 80px;
+            background-color: #0f172a; /* Slate-900 */
+            border-radius: 50%;
+            /* HIER WURDE DER RAND AUF GELB ANGEPASST */
+            border: 4px solid var(--yellow-color); 
+            position: relative;
+        }
+        .reel-inner {
+            width: 60%;
+            height: 60%;
+            background-color: #1e293b; /* Slate-800 */
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #64748b; /* Slate-500 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .reel-spoke {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background-color: #475569;
+            transform-origin: center;
+        }
+
+        /* Message Box Styling */
+        .message-box {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            background-color: #f97316; /* Orange-500 */
+            color: white;
+            border-radius: 0.5rem;
+            z-index: 1000;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="messageBox" class="message-box"></div>
+
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-extrabold text-yellow-300 tracking-wider">Vintage Band-Echo Simulator</h1>
+    </header>
+
+    <!-- Control Center -->
+    <main class="max-w-6xl mx-auto">
+        
+        <!-- Start/Stop Button and Status -->
+        <div class="flex flex-col items-center mb-10 space-y-4">
+            <button id="startButton" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-xl transition duration-200">
+                Audio Starten (Mic)
+            </button>
+            <div id="status" class="text-lg text-gray-300">Audio gestoppt. Bereit zum Starten...</div>
+        </div>
+
+        <!-- Tape Visualization - Reels closer together -->
+        <div id="tapeViz" class="tape-container p-6 mb-12 flex items-center justify-center space-x-12 relative shadow-2xl">
+            
+            <!-- Bandgeschwindigkeit Anzeige (Delay) ist nun entfernt -->
+
+            <div id="reelLeft" class="reel">
+                <div class="reel-inner">
+                    <div class="reel-spoke absolute rotate-0"></div>
+                    <div class="reel-spoke absolute rotate-45"></div>
+                    <div class="reel-spoke absolute rotate-90"></div>
+                    <div class="reel-spoke absolute rotate-135"></div>
+                </div>
+            </div>
+
+            <!-- Central Tape Bridge (Das bewegte Band) -->
+            <div id="tapeBridge" class="w-80 h-10 relative flex justify-center items-center">
+                <div class="moving-tape w-full h-4 bg-gray-900 border-t border-b border-gray-600 rounded-sm shadow-inner"></div>
+            </div>
+
+            <div id="reelRight" class="reel">
+                <div class="reel-inner">
+                    <div class="reel-spoke absolute rotate-0"></div>
+                    <div class="reel-spoke absolute rotate-45"></div>
+                    <div class="reel-spoke absolute rotate-90"></div>
+                    <div class="reel-spoke absolute rotate-135"></div>
+                </div>
+            </div>
+
+            <!-- Drehgeschwindigkeit Multiplikator Anzeige (Speed) ist nun entfernt -->
+        </div>
+        
+        <!-- Parameter Groups (Bereits platzsparend mit md:grid-cols-3) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- 1. Delay-Timing & Mix -->
+            <div class="card p-6 rounded-xl space-y-6 shadow-2xl">
+                <h2 class="text-xl font-semibold text-sky-400">Delay-Timing & Mix</h2>
+                
+                <!-- Verzögerungszeit (s) -->
+                <div class="space-y-2">
+                    <label for="delayTime" class="block">Verzögerungszeit (s)</label>
+                    <input type="range" id="delayTime" min="0.1" max="2.0" step="0.01" value="0.87" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="delayTimeValue">0.87 s</div>
+                </div>
+
+                <!-- Feedback (Wiederholungen) -->
+                <div class="space-y-2">
+                    <label for="feedback" class="block">Feedback (Wiederholungen)</label>
+                    <input type="range" id="feedback" min="0.0" max="0.95" step="0.01" value="0.40" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="feedbackValue">40 %</div>
+                </div>
+
+                <!-- Dry/Wet Mix -->
+                <div class="space-y-2">
+                    <label for="dryWetMix" class="block">Dry/Wet Mix</label>
+                    <input type="range" id="dryWetMix" min="0.0" max="1.0" step="0.01" value="0.50" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="dryWetMixValue">50 %</div>
+                </div>
+            </div>
+
+            <!-- 2. Feedback-Filter (Tape-Degradation) -->
+            <div class="card p-6 rounded-xl space-y-6 shadow-2xl">
+                <h2 class="text-xl font-semibold text-cyan-400">Feedback-Filter (Tape-Degradation)</h2>
+
+                <!-- LPF Cutoff (Band-Dump) -->
+                <div class="space-y-2">
+                    <label for="lpfCutoff" class="block">LPF Cutoff (Band-Dump)</label>
+                    <input type="range" id="lpfCutoff" min="500" max="20000" step="10" value="8000" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="lpfCutoffValue">8000 Hz</div>
+                </div>
+
+                <!-- HPF Cutoff (Bässe-Verlust) -->
+                <div class="space-y-2">
+                    <label for="hpfCutoff" class="block">HPF Cutoff (Bässe-Verlust)</label>
+                    <input type="range" id="hpfCutoff" min="20" max="1000" step="1" value="100" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="hpfCutoffValue">100 Hz</div>
+                </div>
+            </div>
+
+            <!-- 3. Wow & Flutter (Tonhöhenschwankung) -->
+            <div class="card p-6 rounded-xl space-y-6 shadow-2xl">
+                <h2 class="text-xl font-semibold text-orange-400">Wow & Flutter (Tonhöhenschwankung)</h2>
+
+                <!-- Wow Tiefe (Langsames Driften) -->
+                <div class="space-y-2">
+                    <label for="wowDepth" class="block">Wow Tiefe (Langsames Driften)</label>
+                    <input type="range" id="wowDepth" min="0.0" max="0.1" step="0.001" value="0.0048" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="wowDepthValue">0.48 %</div>
+                </div>
+
+                <!-- Flutter Tiefe (Schnelles Flattern) -->
+                <div class="space-y-2">
+                    <label for="flutterDepth" class="block">Flutter Tiefe (Schnelles Flattern)</label>
+                    <input type="range" id="flutterDepth" min="0.0" max="0.01" step="0.0001" value="0.0005" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                    <div class="text-sm text-gray-400" id="flutterDepthValue">0.05 %</div>
+                </div>
+
+                <!-- Drehgeschwindigkeit Multiplikator (Speed) - Versteckt -->
+                <div class="space-y-2 hidden">
+                    <label for="tapeSpeed" class="block">Bandgeschwindigkeit Multiplikator</label>
+                    <input type="range" id="tapeSpeed" min="0.5" max="2.0" step="0.01" value="1.00" class="w-full h-2 bg-gray-500 rounded-lg appearance-none cursor-pointer range-lg shadow-md">
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        // Globale Audio-Variablen
+        let audioContext = null;
+        let micSource = null;
+        let delayNode = null;
+        let feedbackGain = null;
+        let dryGain = null;
+        let wetGain = null;
+        let lpfFilter = null;
+        let hpfFilter = null;
+        let processorNode = null;
+        let masterGain = null; 
+        let isRunning = false;
+        
+        // Konstanten für Wow & Flutter Simulation
+        const SAMPLE_RATE = 44100;
+        const BUFFER_SIZE = 4096;
+        const WOW_RATE = 0.5; 
+        const FLUTTER_RATE = 6; 
+        
+        // Wow & Flutter state
+        let wowTime = 0;
+        let flutterTime = 0;
+        let delayLine = []; 
+        
+        // Basiswerte für die Rotation
+        const BASE_DELAY = 1.0; 
+        const BASE_ANIMATION_DURATION = 1.4; // 50% langsamere Rotation (im Vergleich zu 0.7s)
+
+        // Globale Variablen für die JS-basierte Rotation
+        let reelAnimationId = null;
+        let lastTime = 0;
+        let currentRotation = 0; // Speichert den aktuellen Winkel in Grad
+        
+        // UI-Elemente
+        const startButton = document.getElementById('startButton');
+        const statusDisplay = document.getElementById('status');
+        // delayDisplay und speedDisplay entfernt
+        const reelLeft = document.getElementById('reelLeft');
+        const reelRight = document.getElementById('reelRight');
+        const messageBox = document.getElementById('messageBox');
+        
+        // Zeigt eine temporäre Meldung an
+        function showMessage(msg, type = 'error') {
+            messageBox.textContent = msg;
+            messageBox.className = 'message-box show ' + (type === 'error' ? 'bg-red-600' : 'bg-green-600');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        // Funktion zur Steuerung der Spulen-Animation über requestAnimationFrame
+        function animateReels(timestamp) {
+            if (!isRunning) return;
+
+            if (lastTime === 0) {
+                lastTime = timestamp;
+            }
+
+            const deltaTime = timestamp - lastTime; // Zeit in Millisekunden
+            lastTime = timestamp;
+
+            const delayTime = parseFloat(document.getElementById('delayTime').value);
+            
+            // Die Rotationsgeschwindigkeit ist invers zur Delay-Zeit.
+            const speedFactor = BASE_DELAY / delayTime;
+            
+            // Die Basisrotationsrate (in Grad pro Sekunde) bei BASE_DELAY
+            const baseRotationRate = 360 / BASE_ANIMATION_DURATION; 
+            
+            // Grad, die seit dem letzten Frame gedreht wurden
+            // deltaRotation = (Rate * SpeedFactor) * (deltaTime / 1000ms)
+            const deltaRotation = (baseRotationRate * speedFactor) * (deltaTime / 1000);
+
+            currentRotation += deltaRotation;
+            currentRotation %= 360; // Halte den Winkel zwischen 0 und 360
+
+            // Wende die Rotation an
+            reelLeft.style.transform = `rotate(${currentRotation}deg)`;
+            reelRight.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Plane den nächsten Frame
+            reelAnimationId = requestAnimationFrame(animateReels);
+        }
+
+        // Initialisiert den Audio-Kontext und die Nodes
+        async function setupAudio() {
+            if (audioContext && audioContext.state === 'running') {
+                // Stoppe Audio
+                await stopAudio();
+                return;
+            }
+
+            try {
+                // 1. AudioContext initialisieren
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // 2. Mikrofon-Stream anfordern
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micSource = audioContext.createMediaStreamSource(stream);
+
+                // 3. Audio-Nodes erstellen
+                
+                delayNode = audioContext.createDelay(3.0); 
+                feedbackGain = audioContext.createGain();
+                feedbackGain.gain.value = 0; 
+                dryGain = audioContext.createGain();
+                wetGain = audioContext.createGain();
+
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 1.2; 
+                
+                lpfFilter = audioContext.createBiquadFilter();
+                lpfFilter.type = 'lowpass';
+                hpfFilter = audioContext.createBiquadFilter();
+                hpfFilter.type = 'highpass';
+                
+                // Hinweis: ScriptProcessorNode ist veraltet, wird aber hier für Kompatibilität verwendet
+                processorNode = audioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
+                
+                // Initialisiere die Delay-Line für Wow & Flutter (Pitch Modulation)
+                const maxDelaySamples = Math.ceil(audioContext.sampleRate * 0.1); 
+                delayLine = new Array(maxDelaySamples).fill(0);
+                let writeIndex = 0;
+
+                processorNode.onaudioprocess = function(e) {
+                    const inputBuffer = e.inputBuffer;
+                    const outputBuffer = e.outputBuffer;
+                    const inputData = inputBuffer.getChannelData(0);
+                    const outputData = outputBuffer.getChannelData(0);
+                    
+                    const wowDepth = parseFloat(document.getElementById('wowDepth').value);
+                    const flutterDepth = parseFloat(document.getElementById('flutterDepth').value);
+                    
+                    const tapeSpeedFactor = 1.0;
+                    
+                    for (let i = 0; i < inputData.length; i++) {
+                        const wow = wowDepth * Math.sin(2 * Math.PI * WOW_RATE * wowTime);
+                        const flutter = flutterDepth * Math.sin(2 * Math.PI * FLUTTER_RATE * flutterTime);
+                        
+                        const modulationFactor = 1 + (wow + flutter) * tapeSpeedFactor;
+                        
+                        const baseDelaySamples = SAMPLE_RATE * 0.01; 
+                        let readIndex = writeIndex - baseDelaySamples * modulationFactor;
+
+                        while (readIndex < 0) {
+                            readIndex += delayLine.length;
+                        }
+                        
+                        const readIndexInt = Math.floor(readIndex) % delayLine.length;
+                        const nextReadIndex = (readIndexInt + 1) % delayLine.length;
+                        const fraction = readIndex - readIndexInt;
+                        
+                        const sampleA = delayLine[readIndexInt];
+                        const sampleB = delayLine[nextReadIndex];
+                        
+                        const pitchedSample = sampleA + (sampleB - sampleA) * fraction;
+
+                        delayLine[writeIndex] = inputData[i];
+                        
+                        outputData[i] = pitchedSample; 
+
+                        wowTime += 1 / SAMPLE_RATE;
+                        flutterTime += 1 / SAMPLE_RATE;
+                        writeIndex = (writeIndex + 1) % delayLine.length;
+                    }
+                };
+
+                // 4. Audio-Routing aufbauen
+                micSource.connect(processorNode);
+
+                processorNode.connect(dryGain);
+                dryGain.connect(masterGain); 
+                
+                processorNode.connect(delayNode);
+                
+                delayNode.connect(wetGain);
+                wetGain.connect(masterGain);
+                
+                masterGain.connect(audioContext.destination);
+
+                delayNode.connect(feedbackGain);
+                feedbackGain.connect(lpfFilter);
+                lpfFilter.connect(hpfFilter);
+                hpfFilter.connect(delayNode);
+                
+                // 5. Parameter anwenden
+                updateParams();
+
+                // 6. Status aktualisieren
+                startButton.textContent = 'Audio Stoppen';
+                startButton.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+                startButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                statusDisplay.textContent = 'Audio läuft. Echo aktiv.';
+                
+                // Starte die JS-basierte Rotation
+                lastTime = 0; 
+                reelAnimationId = requestAnimationFrame(animateReels);
+                
+                isRunning = true;
+                showMessage("Mikrofon erfolgreich gestartet.", 'success');
+
+            } catch (error) {
+                console.error('Fehler beim Starten des Audio:', error);
+                showMessage(`Fehler beim Starten des Audio: ${error.message}. Bitte Mikrofonzugriff erlauben.`, 'error');
+                startButton.textContent = 'Audio Starten (Mic)';
+                startButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                startButton.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+                statusDisplay.textContent = 'Audio gestoppt. Bereit zum Starten...';
+                isRunning = false;
+            }
+        }
+
+        // Stoppt den Audio-Kontext
+        async function stopAudio() {
+            if (!isRunning) return;
+            
+            // Stoppt den Mikrofon-Stream
+            if (micSource && micSource.mediaStream) {
+                micSource.mediaStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Trenne alle Verbindungen
+            if (micSource) micSource.disconnect();
+            if (processorNode) processorNode.disconnect();
+            if (delayNode) delayNode.disconnect();
+            if (feedbackGain) feedbackGain.disconnect();
+            if (dryGain) dryGain.disconnect();
+            if (wetGain) wetGain.disconnect();
+            if (lpfFilter) lpfFilter.disconnect();
+            if (hpfFilter) hpfFilter.disconnect();
+            if (masterGain) masterGain.disconnect(); 
+            
+            // Stoppe die JS-basierte Rotation
+            if (reelAnimationId) {
+                cancelAnimationFrame(reelAnimationId);
+                reelAnimationId = null;
+            }
+
+            // Status aktualisieren
+            startButton.textContent = 'Audio Starten (Mic)';
+            startButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+            startButton.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+            statusDisplay.textContent = 'Audio gestoppt. Bereit zum Starten...';
+
+            isRunning = false;
+        }
+
+        // Aktualisiert alle Audio-Parameter basierend auf den UI-Reglern
+        function updateParams() {
+            const delayTime = parseFloat(document.getElementById('delayTime').value);
+            const feedback = parseFloat(document.getElementById('feedback').value);
+            const dryWetMix = parseFloat(document.getElementById('dryWetMix').value);
+            const lpfCutoff = parseFloat(document.getElementById('lpfCutoff').value);
+            const hpfCutoff = parseFloat(document.getElementById('hpfCutoff').value);
+
+            // UI Updates
+            document.getElementById('delayTimeValue').textContent = delayTime.toFixed(2) + ' s';
+            document.getElementById('feedbackValue').textContent = Math.round(feedback * 100) + ' %';
+            document.getElementById('dryWetMixValue').textContent = Math.round(dryWetMix * 100) + ' %';
+            document.getElementById('lpfCutoffValue').textContent = lpfCutoff.toFixed(0) + ' Hz';
+            document.getElementById('hpfCutoffValue').textContent = hpfCutoff.toFixed(0) + ' Hz';
+            document.getElementById('wowDepthValue').textContent = (parseFloat(document.getElementById('wowDepth').value) * 100).toFixed(2) + ' %';
+            document.getElementById('flutterDepthValue').textContent = (parseFloat(document.getElementById('flutterDepth').value) * 100).toFixed(2) + ' %';
+            
+            // Die Anzeigen für Bandgeschwindigkeit und Rotation wurden entfernt.
+            
+            // Audio Param Updates (nur wenn Nodes existieren)
+            if (isRunning && audioContext) {
+                // Die Bandgeschwindigkeit im AudioContext wird nun direkt über die delayTime gesteuert.
+                delayNode.delayTime.setValueAtTime(delayTime, audioContext.currentTime); 
+                feedbackGain.gain.setValueAtTime(feedback, audioContext.currentTime);
+
+                // 2. Mix
+                dryGain.gain.setValueAtTime(1.0 - dryWetMix, audioContext.currentTime);
+                wetGain.gain.setValueAtTime(dryWetMix, audioContext.currentTime);
+
+                // 3. Filter
+                lpfFilter.frequency.setValueAtTime(lpfCutoff, audioContext.currentTime);
+                hpfFilter.frequency.setValueAtTime(hpfCutoff, audioContext.currentTime);
+            }
+        }
+        
+        // Initialer Setup-Code
+        window.onload = function() {
+            // Event Listener für den Start-Button
+            startButton.addEventListener('click', setupAudio);
+
+            // Event Listener für alle Range-Inputs, um Parameter sofort zu aktualisieren
+            const controls = document.querySelectorAll('input[type="range"]');
+            controls.forEach(control => {
+                control.addEventListener('input', updateParams);
+            });
+            
+            // Setze initiale Werte für die Anzeige
+            updateParams();
+        };
+
+        // Fenster schließen Event-Handler (optional, aber gut für Aufräumarbeiten)
+        window.addEventListener('beforeunload', stopAudio);
+
+    </script>
+
+</body>
+</html>
