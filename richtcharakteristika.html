@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mikrofon-Richtcharakteristik-Vergleich</title>
+    <!-- Lade Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lade Tone.js für das Audio-Feedback (Rosa Rauschen) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* Setzt die Schriftart auf Inter (Tailwind Default) */
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Definiert die Größe des Canvas-Containers */
+        #canvas-container {
+            aspect-ratio: 1 / 1; /* Hält das Diagramm quadratisch */
+            max-width: 500px;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            border-radius: 1rem;
+            background-color: #f7f7f7;
+        }
+        /* Custom Styling für den Fokus des Diagramms */
+        .diagram-focus:focus {
+            outline: 2px solid theme('colors.indigo.500');
+            outline-offset: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col items-center p-4 sm:p-8 min-h-screen">
+
+    <div class="max-w-4xl w-full">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Interaktiver Vergleich von Richtcharakteristiken
+            </h1>
+            <p class="mt-2 text-lg text-gray-600">
+                Wählen Sie eine Charakteristik und bewegen Sie die Schallquelle (Klick/Touch) um das Diagramm.
+            </p>
+        </header>
+
+        <main class="flex flex-col lg:flex-row gap-8">
+            <!-- Linke Spalte: Diagramm und Interaktion -->
+            <div id="canvas-container" class="lg:w-1/2 w-full mx-auto relative shadow-2xl shadow-indigo-200 rounded-2xl p-2 bg-white">
+                <canvas id="polarDiagramCanvas" class="diagram-focus" width="500" height="500"></canvas>
+                
+                <!-- Dämpfungsanzeige-Box -->
+                <div id="attenuationDisplay" class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-gray-800 text-sm font-semibold">
+                    <p class="text-xs text-gray-500 mb-1">Dämpfung (Attenuation):</p>
+                    <p class="text-xl font-bold" id="attenuationValue">0.00 dB</p>
+                    <p class="text-xs text-gray-500 mt-1"><span id="angleValue">0</span>° Winkel</p>
+                </div>
+
+                <!-- Audio Control Button -->
+                <div class="absolute bottom-4 left-4">
+                    <button id="audioToggleButton" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full transition-colors shadow-lg flex items-center" onclick="toggleAudio()">
+                        <!-- Einfaches Lautsprecher-Icon (Standard: aus) -->
+                        <svg id="speakerIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a.8.8 0 011.602 0v7.072a.8.8 0 01-1.602 0V8.464zM10.742 1.488a.8.8 0 011.39 0L19.5 12l-7.368 10.512a.8.8 0 01-1.39 0L2.5 12l7.5-10.512z"></path></svg>
+                        <span id="audioButtonText">Audio Starten (Rosa Rauschen)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rechte Spalte: Steuerung -->
+            <div class="lg:w-1/2 w-full p-4 bg-white rounded-2xl shadow-xl">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Richtcharakteristik wählen</h2>
+
+                <div id="patternControls" class="grid grid-cols-2 gap-4">
+                    <!-- Radio-Buttons für die Charakteristiken -->
+                    <label class="bg-indigo-100/50 hover:bg-indigo-200 p-4 rounded-xl cursor-pointer transition-colors border border-indigo-300">
+                        <input type="radio" name="pattern" value="Kugel" checked class="hidden peer" onchange="updatePattern(this.value)">
+                        <span class="font-semibold text-gray-800 block peer-checked:text-indigo-700 peer-checked:font-extrabold">Kugel (Omni)</span>
+                    </label>
+
+                    <label class="bg-indigo-100/50 hover:bg-indigo-200 p-4 rounded-xl cursor-pointer transition-colors border border-indigo-300">
+                        <input type="radio" name="pattern" value="Acht" class="hidden peer" onchange="updatePattern(this.value)">
+                        <span class="font-semibold text-gray-800 block peer-checked:text-indigo-700 peer-checked:font-extrabold">Acht (Bidirektional)</span>
+                    </label>
+                    
+                    <label class="bg-indigo-100/50 hover:bg-indigo-200 p-4 rounded-xl cursor-pointer transition-colors border border-indigo-300">
+                        <input type="radio" name="pattern" value="Niere" class="hidden peer" onchange="updatePattern(this.value)">
+                        <span class="font-semibold text-gray-800 block peer-checked:text-indigo-700 peer-checked:font-extrabold">Niere (Cardioid)</span>
+                    </label>
+
+                    <label class="bg-indigo-100/50 hover:bg-indigo-200 p-4 rounded-xl cursor-pointer transition-colors border border-indigo-300">
+                        <input type="radio" name="pattern" value="Superniere" class="hidden peer" onchange="updatePattern(this.value)">
+                        <span class="font-semibold text-gray-800 block peer-checked:text-indigo-700 peer-checked:font-extrabold">Superniere (Supercardioid)</span>
+                    </label>
+
+                    <label class="bg-indigo-100/50 hover:bg-indigo-200 p-4 rounded-xl cursor-pointer transition-colors border border-indigo-300">
+                        <input type="radio" name="pattern" value="Hyperniere" class="hidden peer" onchange="updatePattern(this.value)">
+                        <span class="font-semibold text-gray-800 block peer-checked:text-indigo-700 peer-checked:font-extrabold">Hyperniere (Hypercardioid)</span>
+                    </label>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Canvas Setup
+        const canvas = document.getElementById('polarDiagramCanvas');
+        const ctx = canvas.getContext('2d');
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+        let maxRadius = Math.min(centerX, centerY) * 0.8; 
+        
+        let currentPattern = 'Kugel';
+        let soundSourceAngleRad = 0; // Standardwinkel ist 0 Grad (vorne/oben)
+
+        // --- Tone.js Setup Variablen ---
+        let noise;
+        let gainNode;
+        let isAudioInitialized = false;
+        let isPlaying = false;
+        
+        // --- Richtcharakteristik-Daten ---
+        const patterns = {
+            'Kugel': {
+                name: 'Kugel (Omni)',
+                p: 1.0, v: 0.0,
+                color: '#4f46e5', // Indigo
+            },
+            'Acht': {
+                name: 'Acht (Bidirektional)',
+                p: 0.0, v: 1.0,
+                color: '#10b981', // Emerald
+            },
+            'Niere': {
+                name: 'Niere (Cardioid)',
+                p: 0.5, v: 0.5,
+                color: '#a855f7', // Violet
+            },
+            'Superniere': {
+                name: 'Superniere (Supercardioid)',
+                p: 0.37, v: 0.63, // Annäherung an den theoretischen Wert (Nullpunkt bei 126.5°)
+                color: '#f97316', // Orange
+            },
+            'Hyperniere': {
+                name: 'Hyperniere (Hypercardioid)',
+                p: 0.25, v: 0.75, // Annäherung an den theoretischen Wert (Nullpunkt bei 109.5°)
+                color: '#db2777', // Pink
+            }
+        };
+
+        /**
+         * Berechnet die relative Empfindlichkeit R(theta) für einen gegebenen Winkel.
+         * @param {number} thetaRad - Winkel in Radiant (0 ist die Achse, also nach oben).
+         * @param {string} patternKey - Der Schlüssel der Charakteristik (z.B. 'Niere').
+         * @returns {number} Relative Empfindlichkeit (0 bis 1).
+         */
+        function getRelativeSensitivity(thetaRad, patternKey) {
+            
+            // R(theta) = |p + v * cos(theta)|
+            const pattern = patterns[patternKey];
+            if (!pattern) return 0;
+            
+            const p = pattern.p;
+            const v = pattern.v;
+            
+            // thetaRad ist der Winkel, wobei 0rad oben ist.
+            let sensitivity = p + v * Math.cos(thetaRad);
+            
+            return Math.abs(sensitivity);
+        }
+
+        /**
+         * Berechnet die Dämpfung (Attenuation) in dB.
+         * @param {number} sensitivity - Relative Empfindlichkeit (0 bis 1).
+         * @returns {number} Dämpfung in dB (negativer Wert, 0 dB ist Maximum).
+         */
+        function calculateAttenuation(sensitivity) {
+            if (sensitivity <= 0) {
+                // Bei Nullpunkten (theoretisch unendlich Dämpfung) auf -40 dB begrenzen
+                return -40.0;
+            }
+            // A(theta) = 20 * log10(R(theta))
+            return 20 * Math.log10(sensitivity);
+        }
+
+        // --- Tone.js Funktionen ---
+
+        function initAudio() {
+            if (isAudioInitialized) return;
+            try {
+                // Tone.js Kontext starten
+                Tone.start(); 
+                noise = new Tone.Noise("pink").start(); // Rosa Rauschen starten
+                // Gain-Knoten für die Dämpfungssteuerung
+                gainNode = new Tone.Gain(1).toDestination();
+                // Rauschen -> Gain -> Lautsprecher
+                noise.connect(gainNode);
+                
+                isAudioInitialized = true;
+                // Das Rauschen ist initial sehr leise, wird beim Start auf den aktuellen Wert gesetzt.
+                gainNode.gain.value = 0.001; 
+                noise.stop(); // Stoppe es zunächst wieder, da wir es im toggleAudio() starten.
+
+            } catch (e) {
+                console.error("Audio Initialization failed:", e);
+            }
+        }
+
+        function toggleAudio() {
+            // Initialisiere Audio beim ersten Klick
+            if (!isAudioInitialized) {
+                initAudio();
+            }
+
+            const button = document.getElementById('audioToggleButton');
+            const buttonText = document.getElementById('audioButtonText');
+            const icon = document.getElementById('speakerIcon');
+
+            if (isPlaying) {
+                // Stoppen
+                noise.stop();
+                isPlaying = false;
+                buttonText.textContent = 'Audio Starten (Rosa Rauschen)';
+                button.classList.replace('bg-red-500', 'bg-indigo-500');
+            } else {
+                // Starten
+                noise.start();
+                isPlaying = true;
+                buttonText.textContent = 'Audio Stoppen';
+                button.classList.replace('bg-indigo-500', 'bg-red-500');
+                
+                // Setze die aktuelle Dämpfung, sobald das Audio startet
+                const sensitivity = getRelativeSensitivity(soundSourceAngleRad, currentPattern);
+                const attenuation = calculateAttenuation(sensitivity);
+                updateAudioAttenuation(attenuation);
+            }
+        }
+
+        /**
+         * Konvertiert die Dämpfung in dB in linearen Gain und wendet sie auf den Gain-Knoten an.
+         * @param {number} attenuationDb - Dämpfung in dB (z.B. 0.00 bis -40.00).
+         */
+        function updateAudioAttenuation(attenuationDb) {
+            if (isPlaying && gainNode) {
+                // Konvertiere dB zu linearer Verstärkung (Gain)
+                // Linear Gain = 10^(dB/20)
+                const linearGain = Math.pow(10, attenuationDb / 20); 
+                
+                // Setze den Gain mit einer kurzen Rampe für sanfte Übergänge
+                gainNode.gain.rampTo(linearGain, 0.05); 
+            }
+        }
+
+
+        // --- Zeichnen der Diagramm-Elemente ---
+
+        function drawGrid() {
+            // Hintergrund löschen
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Achsen und Kreisraster
+            ctx.strokeStyle = '#e5e7eb'; // Lichtgrau
+            ctx.lineWidth = 1;
+            
+            // Radien (0dB, -5dB, -10dB, -15dB, -20dB)
+            const dbLevels = [0, 5, 10, 15, 20];
+            const maxDbRadius = dbLevels[dbLevels.length - 1]; // 20
+
+            dbLevels.forEach(db => {
+                // Skalierung: 0 dB (außen, R=maxRadius) bis 20 dB Dämpfung (innen, R=0).
+                const radius = maxRadius - (db / maxDbRadius) * maxRadius;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                // DB-Labels
+                if (radius > 10) {
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'left';
+                    // Textplatzierung oberhalb des Kreises
+                    ctx.fillText(`-${db} dB`, centerX + 5, centerY - radius - 5);
+                }
+            });
+            
+            // Winkel-Linien (0°, 45°, 90°, 135°, 180°, etc.)
+            ctx.strokeStyle = '#d1d5db';
+            for (let angle = 0; angle < 360; angle += 45) {
+                // angleRad für Canvas (0° rechts)
+                const angleRad = (angle - 90) * (Math.PI / 180); 
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + maxRadius * Math.cos(angleRad),
+                    centerY + maxRadius * Math.sin(angleRad)
+                );
+                ctx.stroke();
+                
+                // Winkel-Labels (außerhalb)
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                const labelX = centerX + (maxRadius + 15) * Math.cos(angleRad);
+                const labelY = centerY + (maxRadius + 15) * Math.sin(angleRad);
+                ctx.fillText(`${angle}°`, labelX, labelY + 4);
+            }
+            
+            // Zentrum (Mikrofon)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1f2937';
+            ctx.fill();
+        }
+
+        function drawPattern(patternKey) {
+            const pattern = patterns[patternKey];
+            const numPoints = 360; // 1 Grad Genauigkeit
+            
+            ctx.beginPath();
+            
+            for (let i = 0; i <= numPoints; i++) {
+                const angleDeg = i;
+                // canvasAngleRad (0° rechts): bestimmt die Position
+                const canvasAngleRad = (angleDeg - 90) * (Math.PI / 180); 
+                // formulaAngleRad (0° oben): bestimmt die Empfindlichkeit
+                const formulaAngleRad = angleDeg * (Math.PI / 180); 
+                
+                // Relative Empfindlichkeit (0 bis 1)
+                const sensitivity = getRelativeSensitivity(formulaAngleRad, patternKey);
+                
+                // Dämpfung in dB (negativ)
+                const attenuation = calculateAttenuation(sensitivity);
+                
+                // dbValueForRadius ist der Dämpfungswert in dB (z.B. 0 für 0dB, 20 für -20dB)
+                const dbValueForRadius = Math.max(0, -attenuation); 
+                
+                // Begrenze den dB-Wert, der für die Radiusberechnung verwendet wird, auf 20.
+                const clampedDb = Math.min(dbValueForRadius, 20);
+
+                // Skalierung: 0 dB (R=maxRadius) bis 20 dB Dämpfung (R=0)
+                const radius = maxRadius - (clampedDb / 20) * maxRadius;
+
+                // Koordinaten berechnen
+                const x = centerX + radius * Math.cos(canvasAngleRad);
+                const y = centerY + radius * Math.sin(canvasAngleRad);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.closePath();
+            ctx.strokeStyle = pattern.color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = pattern.color + '40'; // 25% Transparenz
+            ctx.fill();
+        }
+        
+        function drawSoundSource(angleRad) {
+            // angleRad für Canvas (0° rechts)
+            const canvasAngleRad = angleRad - Math.PI / 2;
+            
+            // 1. Berechnung der Position der Schallquelle (außerhalb des Diagramms)
+            const sourceRadius = maxRadius + 30;
+            const x = centerX + sourceRadius * Math.cos(canvasAngleRad); 
+            const y = centerY + sourceRadius * Math.sin(canvasAngleRad);
+
+            // 2. Berechnung des Rotationswinkels (Vektor von Quelle zu Zentrum)
+            const vecToCenterX = centerX - x;
+            const vecToCenterY = centerY - y;
+            // rotationAngle: Winkel, der von der Quelle zum Zentrum zeigt.
+            const rotationAngle = Math.atan2(vecToCenterY, vecToCenterX);
+
+            // 3. Verbindungslinie zum Zentrum
+            ctx.strokeStyle = '#dc2626'; // Rot
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Gestrichelte Linie
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.setLineDash([]); // Strichlinie zurücksetzen
+            
+            // 4. Zeichnen des Roten Pfeils (mit Rotation)
+            ctx.save(); // Zustand speichern
+            
+            // Zum Zentrum des Pfeils bewegen
+            ctx.translate(x, y); 
+            // Rotieren, sodass der Pfeil zum Zentrum zeigt
+            ctx.rotate(rotationAngle); 
+
+            // Zeichnen des Pfeils
+            const arrowSize = 10;
+            ctx.fillStyle = '#dc2626'; // Rot
+            ctx.beginPath();
+            
+            // Pfeilspitze (nach rechts, da 0° Rotation)
+            ctx.moveTo(arrowSize * 2.5, 0); 
+            ctx.lineTo(arrowSize / 2, -arrowSize);
+            ctx.lineTo(arrowSize / 2, arrowSize);
+            ctx.closePath();
+            ctx.fill();
+
+            // Pfeilschaft
+            ctx.fillRect(-arrowSize, -arrowSize / 4, arrowSize * 1.5, arrowSize / 2);
+
+            ctx.restore(); // Zustand wiederherstellen
+
+
+            // 5. Update der Dämpfungsanzeige
+            const angleDeg = (angleRad * 180 / Math.PI) % 360;
+            const sensitivity = getRelativeSensitivity(angleRad, currentPattern);
+            const attenuation = calculateAttenuation(sensitivity);
+            
+            document.getElementById('attenuationValue').textContent = `${attenuation.toFixed(2)} dB`;
+            document.getElementById('angleValue').textContent = `${angleDeg.toFixed(0)}`;
+            
+            // 6. Audio-Update
+            if (isAudioInitialized) {
+                updateAudioAttenuation(attenuation);
+            }
+            
+            // 7. Verbindungslinie zur Kurve (Anzeigepunkt auf der Polardiagramm-Kurve)
+            const dbValueForRadius = Math.max(0, -attenuation); 
+            
+            // Skalierung: 0 dB (R=maxRadius) bis 20 dB Dämpfung (R=0)
+            const clampedDb = Math.min(dbValueForRadius, 20);
+            const patternRadius = maxRadius - (clampedDb / 20) * maxRadius;
+            
+            const patternX = centerX + patternRadius * Math.cos(canvasAngleRad);
+            const patternY = centerY + patternRadius * Math.sin(canvasAngleRad);
+
+            ctx.beginPath();
+            ctx.arc(patternX, patternY, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = patterns[currentPattern].color;
+            ctx.fill();
+        }
+
+        // --- Event Handler ---
+        
+        function updatePattern(newPattern) {
+            currentPattern = newPattern;
+            drawAll();
+        }
+
+        function drawAll() {
+            drawGrid();
+            drawPattern(currentPattern);
+            drawSoundSource(soundSourceAngleRad);
+        }
+
+        function handleMouseMove(event) {
+            // Initialisiere Audio beim ersten Maus-Event, falls es noch nicht geschehen ist
+            if (!isAudioInitialized) {
+                initAudio();
+            }
+
+            // Position relativ zum Canvas
+            const rect = canvas.getBoundingClientRect();
+            // Verwenden Sie touch-Ereignisse, falls vorhanden
+            const clientX = event.clientX || event.touches?.[0]?.clientX;
+            const clientY = event.clientY || event.touches?.[0]?.clientY;
+
+            if (!clientX || !clientY) return;
+
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            // Vektor von der Mitte zur Maus
+            const vecX = mouseX - centerX;
+            const vecY = mouseY - centerY;
+            
+            // Winkel berechnen (0° ist horizontal rechts)
+            let angle = Math.atan2(vecY, vecX); 
+            
+            // Anpassung der Winkel: 0° soll oben sein (Diagramm-Konvention)
+            angle += Math.PI / 2;
+            if (angle < 0) angle += 2 * Math.PI; // Negativen Winkel korrigieren (0 bis 2*PI)
+            
+            soundSourceAngleRad = angle;
+            drawAll();
+        }
+
+        // Initialisierung
+        window.onload = function() {
+            // Initialisiere Audio, damit es bereit ist, wenn der Benutzer klickt
+            initAudio();
+
+            const container = document.getElementById('canvas-container');
+            const observer = new ResizeObserver(entries => {
+                const size = entries[0].contentRect.width;
+                canvas.width = size;
+                canvas.height = size;
+                centerX = canvas.width / 2;
+                centerY = canvas.height / 2;
+                maxRadius = Math.min(centerX, centerY) * 0.8;
+                drawAll();
+            });
+            observer.observe(container);
+
+            // Setzt den initialen Zustand
+            const initialPattern = document.querySelector('input[name="pattern"]:checked').value;
+            currentPattern = initialPattern;
+            
+            // Event Listener für die Interaktion
+            canvas.addEventListener('click', handleMouseMove);
+            canvas.addEventListener('mousemove', (e) => {
+                if (e.buttons === 1) { // Nur bewegen, wenn Maustaste gedrückt (Drag-Funktion)
+                    handleMouseMove(e);
+                }
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    handleMouseMove(e);
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Fügt Touch-Unterstützung für Klicken/Tippen hinzu
+            canvas.addEventListener('touchstart', (e) => {
+                handleMouseMove(e);
+                e.preventDefault();
+            }, { passive: false });
+
+
+            drawAll(); // Erste Zeichnung
+        };
+    </script>
+</body>
+</html>
