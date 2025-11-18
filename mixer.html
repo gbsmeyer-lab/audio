@@ -317,9 +317,10 @@
                 <!-- 1. Gain-Regler -->
                 <div class="flex flex-col items-center space-y-2">
                     <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
+                    <!-- START-WINKEL VON 0 AUF 45 GEÄNDERT (Gain 1.33) -->
                     <div id="knob-gain-c1" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
-                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="1">
-                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                        data-angle="45" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="1">
+                        <div class="knob-pointer" style="transform: rotate(45deg);"></div>
                     </div>
                 </div>
 
@@ -403,7 +404,7 @@
                     <!-- Fader -->
                     <div class="flex flex-col items-center h-full">
                         <div class="relative w-12 flex-1 flex items-center justify-center">
-                            <input type="range" id="fader-c1" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="1">
+                            <input type="range" id="fader-c1" min="0" max="127" value="127" class="fader absolute transform -rotate-90" data-channel="1">
                         </div>
                         <label for="fader-c1" class="text-sm font-bold mt-2">CH 1</label>
                     </div>
@@ -420,9 +421,10 @@
                 <!-- 1. Gain-Regler -->
                 <div class="flex flex-col items-center space-y-2">
                     <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
+                    <!-- START-WINKEL VON 0 AUF 45 GEÄNDERT (Gain 1.33) -->
                     <div id="knob-gain-c2" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
-                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="2">
-                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
+                        data-angle="45" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="2">
+                        <div class="knob-pointer" style="transform: rotate(45deg);"></div>
                     </div>
                 </div>
 
@@ -506,7 +508,7 @@
                     <!-- Fader -->
                     <div class="flex flex-col items-center h-full">
                         <div class="relative w-12 flex-1 flex items-center justify-center">
-                            <input type="range" id="fader-c2" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="2">
+                            <input type="range" id="fader-c2" min="0" max="127" value="127" class="fader absolute transform -rotate-90" data-channel="2">
                         </div>
                         <label for="fader-c2" class="text-sm font-bold mt-2">CH 2</label>
                     </div>
@@ -555,6 +557,12 @@
             const allKnobs = document.querySelectorAll('.knob');
             const startButton = document.getElementById('start-audio');
             const statusEl = document.getElementById('audio-status');
+
+            // --- NEUE KONSTANTEN FÜR DIE VERSTÄRKUNG ---
+            // Max Gain für den Input Gain Regler (2.0)
+            const MAX_INPUT_GAIN = 2.0; 
+            // Max Gain für die AUX Sends 
+            const MAX_AUX_GAIN = 0.5;
 
 
             // Hilfsfunktion: Wert von einem Bereich auf einen anderen abbilden
@@ -636,7 +644,7 @@
                 
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // --- GEMEINSAME AUX BUS ANALYSERS UND MUTES ERSTELLEN (8 Stück) ---
+                // --- GEMEINSAME AUX BUS ANALYSERS ERSTELLEN ---
                 auxMeterIds.forEach(id => {
                     const meter = auxMeters[id] = {};
                     
@@ -645,10 +653,8 @@
                     meter.dataArray = new Float32Array(meter.analyser.fftSize);
                     meter.leds = document.querySelectorAll(`[data-meter-id="${id}"]`);
 
-                    meter.muteGain = audioCtx.createGain();
-                    meter.muteGain.gain.setValueAtTime(0, audioCtx.currentTime); 
-                    
-                    meter.analyser.connect(meter.muteGain).connect(audioCtx.destination);
+                    // WICHTIG: Analyser müssen mit einem Ausgang verbunden sein, damit sie aktiv sind.
+                    meter.analyser.connect(audioCtx.destination); 
                 });
 
 
@@ -685,10 +691,12 @@
                 const ch = channels[channelId];
 
                 if (target === 'inputGain') {
-                    const gainValue = mapRange(newAngle, -135, 135, 0, 8);
+                    // Verwende den MAX_INPUT_GAIN (2.0)
+                    const gainValue = mapRange(newAngle, -135, 135, 0, MAX_INPUT_GAIN);
                     ch.inputGain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
                 } else if (target && target.startsWith('auxGain')) {
-                    const gainValue = mapRange(newAngle, -135, 135, 0, 2);
+                    // Max Aux Gain beibehalten (0.5)
+                    const gainValue = mapRange(newAngle, -135, 135, 0, MAX_AUX_GAIN);
                     ch[target].gain.setValueAtTime(gainValue, audioCtx.currentTime);
                 } else if (target === 'panner') {
                     const panValue = mapRange(newAngle, -60, 60, -1, 1);
@@ -700,7 +708,8 @@
             function updateFader(channelId) {
                 if (!audioCtx) return;
                 const ch = channels[channelId];
-                const gainValue = mapRange(ch.fader.value, 0, 127, 0, 1.2);
+                // Max Fader Gain auf 1.0
+                const gainValue = mapRange(ch.fader.value, 0, 127, 0, 1.0);
                 ch.faderGain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
             }
 
@@ -763,8 +772,7 @@
                 });
             });
 
-            // --- NEUE Pegelanzeige-Logik mit Farbunterscheidung ---
-
+            // --- Pegelanzeige-Logik mit Farbunterscheidung ---
             // Funktion zur Aktualisierung eines Meters (Main oder HP)
             function updateMeter(analyserNode, dataArray, leds, totalLeds, channelId) {
                 analyserNode.getFloatTimeDomainData(dataArray);
@@ -777,17 +785,18 @@
                     }
                 }
                 
-                const displayPeak = Math.min(peak, 1.1) / 1.1;
+                // Normalisiere Peak auf den Anzeigebereich (z.B. 1.1)
+                const displayPeak = Math.min(peak, 1.1) / 1.1; 
                 const ledsToShow = Math.ceil(displayPeak * totalLeds);
 
                 // Bestimme die Farbschwellen basierend auf der Segmentanzahl
                 let lowThreshold, midThreshold;
                 if (totalLeds === 12) { // Main Meter
-                    lowThreshold = 8;  // 8 LEDs für niedrig/mittel
-                    midThreshold = 11; // 3 LEDs für mittel/hoch
+                    lowThreshold = 8;  
+                    midThreshold = 11; 
                 } else { // HP Meter (5 Segmente)
-                    lowThreshold = 3;  // 3 LEDs für niedrig/mittel
-                    midThreshold = 4;  // 1 LED für mittel/hoch
+                    lowThreshold = 3;  
+                    midThreshold = 4;  
                 }
 
                 const isChannel2 = channelId === 2;
