@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vollparametrischer 3-Band Equalizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #34d399;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .control-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #34d399;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #visualizer {
+            width: 100%;
+            height: 400px;
+            cursor: default;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    <div class="w-full max-w-4xl bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-700">
+        <h1 class="text-3xl font-bold mb-6 text-center text-teal-400">Vollparametrischer 3-Band Equalizer</h1>
+        <div class="text-center mb-6 flex justify-center space-x-4">
+            <button id="toggleButton" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-full shadow-lg transition duration-200 transform hover:scale-105 disabled:opacity-50" aria-label="Rauschen starten oder stoppen">
+                Rauschen Starten
+            </button>
+            <button id="resetButton" class="px-8 py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-full shadow-lg transition duration-200 transform hover:scale-105" aria-label="Filter auf Standardwerte zurücksetzen">
+                Reset
+            </button>
+        </div>
+        <div class="mb-8 bg-gray-900 rounded-lg p-3 border border-gray-700">
+            <canvas id="visualizer" class="rounded-lg bg-black"></canvas>
+        </div>
+        <div class="space-y-6 md:flex md:space-x-4 md:space-y-0">
+            <div class="bg-gray-700 p-4 rounded-lg shadow-inner md:w-1/3">
+                <h3 class="text-lg font-bold mb-3 text-red-300">Low Band</h3>
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <label for="lowType" class="text-sm font-medium text-gray-300">Typ:</label>
+                    <select id="lowType" class="bg-gray-600 text-white p-1 rounded">
+                        <option value="lowshelf">Low Shelf</option>
+                        <option value="lowpass">Low Cut</option>
+                    </select>
+                    <span id="lowTypeInfo" class="text-xs text-gray-400"></span>
+                </div>
+                <div class="control-group">
+                    <label for="lowFreqSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Frequenz (Hz):</span>
+                        <span id="lowFreqValue" class="font-mono text-red-400">100 Hz</span>
+                    </label>
+                    <input type="range" id="lowFreqSlider" min="20" max="1000" value="100" step="1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group" id="lowGainContainer">
+                    <label for="lowGainSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Verstärkung (dB):</span>
+                        <span id="lowGainValue" class="font-mono text-red-400">0.0 dB</span>
+                    </label>
+                    <input type="range" id="lowGainSlider" min="-20" max="20" value="0" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group">
+                    <label for="lowQSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Gütefaktor (Q):</span>
+                        <span id="lowQValue" class="font-mono text-red-400">0.7</span>
+                    </label>
+                    <input type="range" id="lowQSlider" min="0.1" max="10" value="0.7" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+            </div>
+            <div class="bg-gray-700 p-4 rounded-lg shadow-inner md:w-1/3">
+                <h3 class="text-lg font-bold mb-3 text-teal-300">Mid Band (Peaking)</h3>
+                <div class="control-group">
+                    <label for="midFreqSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Frequenz (Hz):</span>
+                        <span id="midFreqValue" class="font-mono text-teal-400">1000 Hz</span>
+                    </label>
+                    <input type="range" id="midFreqSlider" min="50" max="10000" value="1000" step="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group">
+                    <label for="midGainSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Verstärkung (dB):</span>
+                        <span id="midGainValue" class="font-mono text-teal-400">0.0 dB</span>
+                    </label>
+                    <input type="range" id="midGainSlider" min="-20" max="20" value="0" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group">
+                    <label for="midQSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Gütefaktor (Q):</span>
+                        <span id="midQValue" class="font-mono text-teal-400">1.0</span>
+                    </label>
+                    <input type="range" id="midQSlider" min="0.1" max="30" value="1" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+            </div>
+            <div class="bg-gray-700 p-4 rounded-lg shadow-inner md:w-1/3">
+                <h3 class="text-lg font-bold mb-3 text-blue-300">High Band</h3>
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <label for="highType" class="text-sm font-medium text-gray-300">Typ:</label>
+                    <select id="highType" class="bg-gray-600 text-white p-1 rounded">
+                        <option value="highshelf">High Shelf</option>
+                        <option value="highpass">High Cut</option>
+                    </select>
+                    <span id="highTypeInfo" class="text-xs text-gray-400"></span>
+                </div>
+                <div class="control-group" id="highGainContainer">
+                    <label for="highFreqSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Frequenz (Hz):</span>
+                        <span id="highFreqValue" class="font-mono text-blue-400">5000 Hz</span>
+                    </label>
+                    <input type="range" id="highFreqSlider" min="500" max="20000" value="5000" step="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group" id="highGainContainer">
+                    <label for="highGainSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Verstärkung (dB):</span>
+                        <span id="highGainValue" class="font-mono text-blue-400">0.0 dB</span>
+                    </label>
+                    <input type="range" id="highGainSlider" min="-20" max="20" value="0" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+                <div class="control-group">
+                    <label for="highQSlider" class="block text-sm font-medium text-gray-300 mb-2 flex justify-between">
+                        <span>Gütefaktor (Q):</span>
+                        <span id="highQValue" class="font-mono text-blue-400">0.7</span>
+                    </label>
+                    <input type="range" id="highQSlider" min="0.1" max="10" value="0.7" step="0.1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer control-slider">
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+window.onload = function() {
+    // Setup DOM elements and state
+    let audioContext;
+    let noiseSource = null;
+    let analyser;
+    let isPlaying = false;
+    let isDragging = false;
+    const HANDLE_RADIUS = 10;
+    let draggedFilter = null;
+
+    const DEFAULT_FILTERS = [
+        { freq: 100, gain: 0, q: 0.7, type: 'lowshelf' },
+        { freq: 1000, gain: 0, q: 1.0, type: 'peaking' },
+        { freq: 5000, gain: 0, q: 0.7, type: 'highshelf' }
+    ];
+
+    const filters = [
+        { // Low
+            name: 'Low',
+            node: null,
+            color: '#f87171',
+            type: 'lowshelf',
+            freqSlider: document.getElementById('lowFreqSlider'),
+            gainSlider: document.getElementById('lowGainSlider'),
+            qSlider: document.getElementById('lowQSlider'),
+            typeSelect: document.getElementById('lowType'),
+            freqValue: document.getElementById('lowFreqValue'),
+            gainValue: document.getElementById('lowGainValue'),
+            qValue: document.getElementById('lowQValue'),
+            gainContainer: document.getElementById('lowGainContainer'),
+            typeInfo: document.getElementById('lowTypeInfo'),
+            dragRadius: 10,
+            x: 0, y: 0
+        },
+        { // Mid
+            name: 'Mid',
+            node: null,
+            color: '#34d399',
+            type: 'peaking',
+            freqSlider: document.getElementById('midFreqSlider'),
+            gainSlider: document.getElementById('midGainSlider'),
+            qSlider: document.getElementById('midQSlider'),
+            typeSelect: null,
+            freqValue: document.getElementById('midFreqValue'),
+            gainValue: document.getElementById('midGainValue'),
+            qValue: document.getElementById('midQValue'),
+            gainContainer: null,
+            typeInfo: null,
+            dragRadius: 10,
+            x: 0, y: 0
+        },
+        { // High
+            name: 'High',
+            node: null,
+            color: '#60a5fa',
+            type: 'highshelf',
+            freqSlider: document.getElementById('highFreqSlider'),
+            gainSlider: document.getElementById('highGainSlider'),
+            qSlider: document.getElementById('highQSlider'),
+            typeSelect: document.getElementById('highType'),
+            freqValue: document.getElementById('highFreqValue'),
+            gainValue: document.getElementById('highGainValue'),
+            qValue: document.getElementById('highQValue'),
+            gainContainer: document.getElementById('highGainContainer'),
+            typeInfo: document.getElementById('highTypeInfo'),
+            dragRadius: 10,
+            x: 0, y: 0
+        }
+    ];
+
+    // UI elements
+    const toggleButton = document.getElementById('toggleButton');
+    const resetButton = document.getElementById('resetButton');
+    const canvas = document.getElementById('visualizer');
+    const canvasCtx = canvas.getContext('2d');
+
+    // Visualizer constants
+    const PADDING = 35;
+    const MIN_FREQ = 20;
+    const MAX_FREQ = 20000;
+    const DB_RANGE = 50;
+    const MIN_DB = -25;
+    const MAX_DB = 25;
+
+    const curveFrequencyHz = new Float32Array(200);
+
+    function getX(freq, WIDTH) {
+        if (freq < MIN_FREQ) return PADDING;
+        if (freq > MAX_FREQ) return WIDTH - PADDING;
+        const logMin = Math.log10(MIN_FREQ);
+        const logMax = Math.log10(MAX_FREQ);
+        const logFreq = Math.log10(freq);
+        return PADDING + (WIDTH - 2 * PADDING) * (logFreq - logMin) / (logMax - logMin);
+    }
+    function getFreq(x, WIDTH, minSliderFreq, maxSliderFreq) {
+        const logMinVis = Math.log10(MIN_FREQ);
+        const logMaxVis = Math.log10(MAX_FREQ);
+        const normalizedX = (x - PADDING) / (WIDTH - 2 * PADDING);
+        const clampedNormalizedX = Math.max(0, Math.min(1, normalizedX));
+        const logFreq = logMinVis + clampedNormalizedX * (logMaxVis - logMinVis);
+        const freq = Math.pow(10, logFreq);
+        return Math.max(minSliderFreq, Math.min(maxSliderFreq, freq));
+    }
+    function getY(db, HEIGHT) {
+        const normalizedDb = (db - MIN_DB) / DB_RANGE;
+        return HEIGHT - PADDING - (HEIGHT - 2 * PADDING) * normalizedDb;
+    }
+    function getDb(y, HEIGHT) {
+        const normalizedY = (HEIGHT - PADDING - y) / (HEIGHT - 2 * PADDING);
+        const db = normalizedY * DB_RANGE + MIN_DB;
+        return Math.max(-20, Math.min(20, db));
+    }
+    function getMousePos(canvas, event) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = event.clientX || (event.touches ? event.touches[0].clientX : 0);
+        const clientY = event.clientY || (event.touches ? event.touches[0].clientY : 0);
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            filters.forEach(filter => {
+                filter.node = audioContext.createBiquadFilter();
+                filter.node.type = filter.type;
+            });
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            filters[0].node.connect(filters[1].node);
+            filters[1].node.connect(filters[2].node);
+            filters[2].node.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            for (let i = 0; i < curveFrequencyHz.length; i++) {
+                const frac = i / curveFrequencyHz.length;
+                const logFreq = MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, frac);
+                curveFrequencyHz[i] = logFreq;
+            }
+            updateFiltersOnly();
+        }
+    }
+    function createWhiteNoise() {
+        const bufferSize = audioContext.sampleRate * 2;
+        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        noiseSource = audioContext.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.loop = true;
+        noiseSource.connect(filters[0].node);
+    }
+    function updateFilterUI(filter) {
+        if (filter.typeSelect) {
+            filter.type = filter.typeSelect.value;
+        }
+        const isCut = filter.type === 'lowpass' || filter.type === 'highpass';
+        if (filter.gainContainer) {
+            filter.gainContainer.style.display = isCut ? 'none' : 'block';
+        }
+        if (filter.typeInfo) {
+            filter.typeInfo.textContent = isCut ? 'Gain wird ignoriert (Cut Filter)' : '';
+        }
+        const gain = parseFloat(filter.gainSlider.value);
+        const freq = parseFloat(filter.freqSlider.value);
+        const q = parseFloat(filter.qSlider.value);
+        if (filter.node && audioContext) {
+            filter.node.type = filter.type;
+            filter.node.frequency.setValueAtTime(freq, audioContext.currentTime);
+            filter.node.Q.setValueAtTime(q, audioContext.currentTime);
+            if (!isCut) {
+                filter.node.gain.setValueAtTime(gain, audioContext.currentTime);
+            } else {
+                filter.node.gain.setValueAtTime(0, audioContext.currentTime);
+            }
+        }
+        filter.gainValue.textContent = `${gain.toFixed(1)} dB`;
+        filter.freqValue.textContent = `${freq.toFixed(0)} Hz`;
+        filter.qValue.textContent = `${q.toFixed(1)}`;
+    }
+    function updateFiltersOnly() {
+        filters.forEach(updateFilterUI);
+    }
+    function handleControlChange() {
+        updateFiltersOnly();
+        if (!isPlaying) {
+            initialDraw();
+        }
+    }
+    filters.forEach(filter => {
+        if (filter.freqSlider) filter.freqSlider.addEventListener('input', handleControlChange);
+        if (filter.gainSlider) filter.gainSlider.addEventListener('input', handleControlChange);
+        if (filter.qSlider) filter.qSlider.addEventListener('input', handleControlChange);
+        if (filter.typeSelect) filter.typeSelect.addEventListener('change', handleControlChange);
+    });
+    function resetFilters() {
+        filters.forEach((filter, index) => {
+            const defaults = DEFAULT_FILTERS[index];
+            filter.freqSlider.value = defaults.freq;
+            filter.gainSlider.value = defaults.gain;
+            filter.qSlider.value = defaults.q;
+            if (filter.typeSelect) {
+                filter.typeSelect.value = defaults.type;
+            }
+        });
+        handleControlChange();
+    }
+    resetButton.addEventListener('click', resetFilters);
+
+    function toggleNoise() {
+        try {
+            initAudio();
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (!isPlaying) {
+                createWhiteNoise();
+                noiseSource.start();
+                isPlaying = true;
+                toggleButton.textContent = "Rauschen Stoppen";
+                toggleButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                toggleButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                drawVisualizer();
+            } else {
+                if (noiseSource) {
+                    noiseSource.stop(audioContext.currentTime + 0.05);
+                    noiseSource.disconnect();
+                    noiseSource = null;
+                }
+                isPlaying = false;
+                toggleButton.textContent = "Rauschen Starten";
+                toggleButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                toggleButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                initialDraw();
+            }
+        } catch (e) {
+            alert("Audio start failed: " + e.message);
+            console.error("Audio start failed:", e);
+        }
+    }
+    toggleButton.addEventListener('click', toggleNoise);
+
+    function handleDragStart(event) {
+        initAudio();
+        const pos = getMousePos(canvas, event);
+        draggedFilter = null;
+        for (const filterObj of filters) {
+            if (filterObj.node) {
+                const distSq = (pos.x - filterObj.x) ** 2 + (pos.y - filterObj.y) ** 2;
+                if (distSq < (filterObj.dragRadius * 2) ** 2) {
+                    draggedFilter = filterObj;
+                    break;
+                }
+            }
+        }
+        if (draggedFilter) {
+            isDragging = true;
+            if (event.type === 'mousedown') event.preventDefault();
+        }
+    }
+    function handleDragMove(event) {
+        if (!isDragging || !draggedFilter) return;
+        const pos = getMousePos(canvas, event);
+        if (event.type === 'touchmove') event.preventDefault();
+        const WIDTH = canvas.offsetWidth;
+        const HEIGHT = canvas.offsetHeight;
+        const isDraggableOnY = draggedFilter.type === 'peaking' || draggedFilter.type === 'lowshelf' || draggedFilter.type === 'highshelf';
+        const minFreq = parseFloat(draggedFilter.freqSlider.min);
+        const maxFreq = parseFloat(draggedFilter.freqSlider.max);
+        const newFreq = getFreq(pos.x, WIDTH, minFreq, maxFreq);
+        draggedFilter.freqSlider.value = newFreq.toFixed(0);
+        if (isDraggableOnY) {
+            const newGain = getDb(pos.y, HEIGHT);
+            draggedFilter.gainSlider.value = newGain.toFixed(1);
+        }
+        handleControlChange();
+    }
+    function handleDragEnd() {
+        isDragging = false;
+        draggedFilter = null;
+    }
+    function attachInteractionEvents() {
+        canvas.addEventListener('mousedown', handleDragStart);
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+        canvas.addEventListener('touchstart', handleDragStart);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+        document.addEventListener('touchend', handleDragEnd);
+    }
+    function drawAxesAndGrid(WIDTH, HEIGHT) {
+        canvasCtx.font = '12px Inter';
+        canvasCtx.fillStyle = '#9ca3af';
+        canvasCtx.strokeStyle = '#374151';
+
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(PADDING, PADDING);
+        canvasCtx.lineTo(PADDING, HEIGHT - PADDING);
+        canvasCtx.lineTo(WIDTH - PADDING, HEIGHT - PADDING);
+        canvasCtx.lineWidth = 1;
+        canvasCtx.stroke();
+        canvasCtx.closePath();
+
+        const freqLabels = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+
+        for (let i = 0; i < freqLabels.length; i++) {
+            const freq = freqLabels[i];
+            const x = getX(freq, WIDTH);
+            if (freq !== 20 && freq !== 20000) {
+                canvasCtx.beginPath();
+                canvasCtx.strokeStyle = '#1f2937';
+                canvasCtx.moveTo(x, PADDING);
+                canvasCtx.lineTo(x, HEIGHT - PADDING);
+                canvasCtx.stroke();
+            }
+            const label = freq >= 1000 ? `${freq/1000}k` : `${freq}`;
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText(label, x, HEIGHT - PADDING + 20);
+        }
+        canvasCtx.textAlign = 'center';
+        canvasCtx.fillStyle = '#6b7280';
+        canvasCtx.fillText('Frequenz (Hz)', WIDTH / 2, HEIGHT - 5);
+
+        const dbLabels = [MAX_DB, 15, 0, -15, MIN_DB];
+
+        for (let i = 0; i < dbLabels.length; i++) {
+            const db = dbLabels[i];
+            const y = getY(db, HEIGHT);
+            canvasCtx.beginPath();
+            canvasCtx.strokeStyle = db === 0 ? '#4b5563' : '#1f2937';
+            canvasCtx.moveTo(PADDING, y);
+            canvasCtx.lineTo(WIDTH - PADDING, y);
+            canvasCtx.stroke();
+            canvasCtx.textAlign = 'right';
+            canvasCtx.fillStyle='#9ca3af';
+            canvasCtx.fillText(`${db} dB`, PADDING - 5, y + 4);
+        }
+        canvasCtx.textAlign = 'left';
+        canvasCtx.fillStyle='#9ca3af';
+        canvasCtx.fillText('Gain', 5, PADDING - 5);
+    }
+    function getCombinedResponse(freqs) {
+        const combinedMag = new Float32Array(freqs.length).fill(1.0);
+        for (const filterObj of filters) {
+            if (!filterObj.node) continue;
+            const magResponse = new Float32Array(freqs.length);
+            const phaseResponse = new Float32Array(freqs.length);
+            filterObj.node.getFrequencyResponse(freqs, magResponse, phaseResponse);
+            for (let i = 0; i < freqs.length; i++) {
+                combinedMag[i] *= magResponse[i];
+            }
+        }
+        return combinedMag;
+    }
+    function drawFilterCurve(WIDTH, HEIGHT) {
+        if (!filters[0].node) return;
+        const combinedMag = getCombinedResponse(curveFrequencyHz);
+        canvasCtx.beginPath();
+        canvasCtx.strokeStyle = '#fef08a';
+        canvasCtx.lineWidth = 3;
+        for (let i = 0; i < curveFrequencyHz.length; i++) {
+            const freq = curveFrequencyHz[i];
+            const db = 20 * Math.log10(combinedMag[i]);
+            const x = getX(freq, WIDTH);
+            const y = getY(db, HEIGHT);
+            if (i === 0) {
+                canvasCtx.moveTo(x, y);
+            } else {
+                canvasCtx.lineTo(x, y);
+            }
+        }
+        canvasCtx.stroke();
+        canvasCtx.closePath();
+        filters.forEach(filter => {
+            const freq = filter.node.frequency.value;
+            const isDraggableOnY = filter.type === 'peaking' || filter.type === 'lowshelf' || filter.type === 'highshelf';
+            let gain = isDraggableOnY ? filter.node.gain.value : 0;
+            filter.x = getX(freq, WIDTH);
+            filter.y = getY(gain, HEIGHT);
+            canvasCtx.fillStyle = filter.color;
+            canvasCtx.beginPath();
+            canvasCtx.arc(filter.x, filter.y, filter.dragRadius, 0, 2 * Math.PI);
+            canvasCtx.fill();
+            canvasCtx.strokeStyle = '#000000';
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.stroke();
+            canvasCtx.closePath();
+            if (draggedFilter === filter) {
+                canvasCtx.strokeStyle = '#ffffff';
+                canvasCtx.lineWidth = 4;
+                canvasCtx.beginPath();
+                canvasCtx.arc(filter.x, filter.y, filter.dragRadius + 4, 0, 2 * Math.PI);
+                canvasCtx.stroke();
+                canvasCtx.closePath();
+            }
+        });
+    }
+    function drawSpectrum(WIDTH, HEIGHT) {
+        if (!analyser || !audioContext) return;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        canvasCtx.fillStyle = 'rgba(160, 32, 240, 0.3)';
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(PADDING, HEIGHT - PADDING);
+        const maxVisibleIndex = Math.floor(bufferLength * (MAX_FREQ / (audioContext.sampleRate / 2)));
+        for(let i = 0; i < maxVisibleIndex; i++) {
+            const freq = i * audioContext.sampleRate / analyser.fftSize;
+            const amplitude = dataArray[i];
+            const dbSimulated = (amplitude / 255) * DB_RANGE + MIN_DB;
+            const x = getX(freq, WIDTH);
+            const y = getY(dbSimulated, HEIGHT);
+            canvasCtx.lineTo(x, y);
+        }
+        canvasCtx.lineTo(WIDTH - PADDING, HEIGHT - PADDING);
+        canvasCtx.lineTo(PADDING, HEIGHT - PADDING);
+        canvasCtx.fill();
+        canvasCtx.closePath();
+    }
+    function drawVisualizer() {
+        const WIDTH = canvas.offsetWidth;
+        const HEIGHT = canvas.offsetHeight;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+        canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+        drawAxesAndGrid(WIDTH, HEIGHT);
+        if (isPlaying && analyser) drawSpectrum(WIDTH, HEIGHT);
+        drawFilterCurve(WIDTH, HEIGHT);
+        if (isPlaying) {
+            requestAnimationFrame(drawVisualizer);
+        }
+    }
+    function initialDraw() {
+        const WIDTH = canvas.offsetWidth;
+        const HEIGHT = canvas.offsetHeight;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+        canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+        initAudio();
+        drawAxesAndGrid(WIDTH, HEIGHT);
+        updateFiltersOnly();
+        drawFilterCurve(WIDTH, HEIGHT);
+    }
+    window.addEventListener('resize', () => {
+        if (!isPlaying) {
+            initialDraw();
+        }
+    });
+    attachInteractionEvents();
+    initialDraw();
+};
+</script>
+</body>
+</html>
