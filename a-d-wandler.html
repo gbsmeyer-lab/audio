@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abtast-Simulator (Sampling & Quantisierung)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Range Slider Styling für den Dark Mode */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        /* Canvas Glow Effect */
+        canvas {
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 5px #06b6d4;
+        }
+        .neon-text-magenta {
+            text-shadow: 0 0 5px #d946ef;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col items-center p-4">
+
+    <!-- Header -->
+    <header class="w-full max-w-4xl mb-6 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-bold text-white tracking-wider">A/D <span class="text-slate-400">WANDLER</span> SIMULATOR</h1>
+            <p class="text-slate-400 text-sm mt-1">Interaktive Demo für Sampling (Zeit) & Quantisierung (Amplitude)</p>
+        </div>
+        <div class="mt-4 md:mt-0 flex gap-2">
+            <button id="playBtn" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow-lg transition-all flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                START AUDIO
+            </button>
+            <button id="stopBtn" class="hidden px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded shadow-lg transition-all">
+                STOP
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Visualizer Area -->
+    <main class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Canvas Display -->
+        <div class="lg:col-span-3 bg-slate-900 rounded-xl border border-slate-800 p-1 relative">
+            <div class="absolute top-4 left-4 flex flex-col gap-2 text-xs font-mono pointer-events-none select-none bg-black/50 p-2 rounded">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]"></span>
+                    <span class="text-cyan-400">ANALOG (Eingang)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-fuchsia-500 shadow-[0_0_8px_#d946ef]"></span>
+                    <span class="text-fuchsia-400">DIGITAL (Ausgang)</span>
+                </div>
+            </div>
+            <canvas id="oscilloscope" class="w-full h-[300px] md:h-[400px] bg-slate-900 rounded-lg cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Controls -->
+        <div class="lg:col-span-3 bg-slate-900 rounded-xl border border-slate-800 p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Parameter Controls -->
+                <div class="space-y-6">
+                    <h2 class="text-xl font-semibold text-white border-b border-slate-700 pb-2 mb-4">Abtastung Parameter</h2>
+                    
+                    <!-- Sample Rate Control -->
+                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <label class="flex justify-between mb-2">
+                            <span class="text-cyan-400 font-bold">Abtastrate (Sampling Rate)</span>
+                            <span id="srValue" class="font-mono text-white">44100 Hz</span>
+                        </label>
+                        <input type="range" id="sampleRate" min="100" max="44100" value="44100" step="100" class="w-full accent-cyan-500">
+                        <p class="text-xs text-slate-500 mt-2">Bestimmt die zeitliche Auflösung (Horizontale Achse). Niedrige Werte führen zu Aliasing.</p>
+                    </div>
+
+                    <!-- Bit Depth Control -->
+                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <label class="flex justify-between mb-2">
+                            <span class="text-fuchsia-400 font-bold">Bit-Tiefe (Auflösung)</span>
+                            <span id="bitValue" class="font-mono text-white">16 Bit</span>
+                        </label>
+                        <input type="range" id="bitDepth" min="1" max="16" value="16" step="1" class="w-full accent-fuchsia-500">
+                        <p class="text-xs text-slate-500 mt-2">Bestimmt die Amplituden-Stufen (Vertikale Achse). Niedrige Werte führen zu Quantisierungsrauschen.</p>
+                    </div>
+                </div>
+
+                <!-- Signal Controls -->
+                <div class="space-y-6">
+                    <h2 class="text-xl font-semibold text-white border-b border-slate-700 pb-2 mb-4">Signal Quelle & Info</h2>
+
+                    <!-- Source Select -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                            <label class="block text-sm text-slate-400 mb-2">Audio Quelle</label>
+                            <select id="waveType" class="w-full bg-slate-900 text-white border border-slate-600 rounded p-2 focus:border-cyan-500 focus:outline-none">
+                                <option value="sine">Sinuswelle</option>
+                                <option value="noise">Weißes Rauschen</option>
+                                <option value="triangle">Dreieck</option>
+                                <option value="sawtooth">Sägezahn</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                            <label class="block text-sm text-slate-400 mb-2">Frequenz (Hz)</label>
+                            <input type="number" id="frequency" value="440" min="20" max="2000" class="w-full bg-slate-900 text-white border border-slate-600 rounded p-2 focus:border-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Gain / Volume -->
+                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <label class="flex justify-between mb-2">
+                            <span class="text-slate-300">Ausgangslautstärke</span>
+                            <span id="volValue" class="font-mono text-slate-400">50%</span>
+                        </label>
+                        <input type="range" id="volume" min="0" max="1" value="0.1" step="0.01" class="w-full">
+                    </div>
+
+                    <!-- Realtime Calc -->
+                    <div class="mt-4 p-4 bg-black/40 rounded border border-slate-800 font-mono text-sm">
+                        <div class="flex justify-between border-b border-slate-800 pb-1 mb-1">
+                            <span class="text-slate-500">Stufen (Levels):</span>
+                            <span id="levelsValue" class="text-fuchsia-400">65536</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800 pb-1 mb-1">
+                            <span class="text-slate-500">Nyquist-Frequenz:</span>
+                            <span id="nyquistValue" class="text-cyan-400">22050 Hz</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Datenrate (Mono):</span>
+                            <span id="bitrateValue" class="text-emerald-400">705.6 kbit/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-8 text-slate-600 text-sm text-center max-w-2xl">
+        <p>Achtung: Bei niedrigen Abtastraten (unter 2x Signalfrequenz) entstehen hörbare Aliasing-Frequenzen. Bei niedriger Bit-Tiefe (unter 8 Bit) entsteht deutliches digitales Rauschen.</p>
+    </footer>
+
+    <script>
+        // --- Configuration ---
+        const config = {
+            sampleRate: 44100, // Target simulated rate
+            bitDepth: 16,
+            frequency: 440,
+            volume: 0.1,
+            waveType: 'sine'
+        };
+
+        // --- Audio Context ---
+        let audioCtx;
+        let oscillator;
+        let noiseNode;
+        let scriptNode;
+        let gainNode;
+        let isPlaying = false;
+        let noiseBuffer;
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('oscilloscope');
+        const ctx = canvas.getContext('2d');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        // Inputs
+        const elSampleRate = document.getElementById('sampleRate');
+        const elBitDepth = document.getElementById('bitDepth');
+        const elFrequency = document.getElementById('frequency');
+        const elVolume = document.getElementById('volume');
+        const elWaveType = document.getElementById('waveType');
+
+        // Labels
+        const lblSr = document.getElementById('srValue');
+        const lblBit = document.getElementById('bitValue');
+        const lblVol = document.getElementById('volValue');
+        const lblLevels = document.getElementById('levelsValue');
+        const lblNyquist = document.getElementById('nyquistValue');
+        const lblBitrate = document.getElementById('bitrateValue');
+
+        // --- Resize Canvas ---
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Audio Logic ---
+        
+        // White Noise Generator
+        function createWhiteNoiseBuffer() {
+            if (!audioCtx) return;
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            return buffer;
+        }
+
+        async function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            // Master Gain
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = config.volume;
+            gainNode.connect(audioCtx.destination);
+
+            // Processor for Bitcrushing / Downsampling
+            // Uses simple ScriptProcessor (deprecated but reliable for this simple standalone demo without worklets)
+            scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+            
+            let phaser = 0;
+            let lastSample = 0;
+
+            scriptNode.onaudioprocess = function(audioProcessingEvent) {
+                const inputBuffer = audioProcessingEvent.inputBuffer;
+                const outputBuffer = audioProcessingEvent.outputBuffer;
+                const inputData = inputBuffer.getChannelData(0);
+                const outputData = outputBuffer.getChannelData(0);
+
+                // Simulation Parameters
+                const stepSize = 1 / config.sampleRate; // Target step time
+                const systemSampleRate = audioCtx.sampleRate;
+                
+                // Calculate step size in samples relative to actual system rate
+                const samplesPerStep = systemSampleRate / config.sampleRate;
+
+                // Quantization levels (WICHTIG: Die Audio-Logik nutzt IMMER die volle, eingestellte Bit-Tiefe)
+                const levels = Math.pow(2, config.bitDepth);
+                const maxVal = levels / 2;
+
+                for (let i = 0; i < inputBuffer.length; i++) {
+                    // Downsampling Logic (Sample & Hold)
+                    phaser += 1;
+                    if (phaser >= samplesPerStep) {
+                        phaser -= samplesPerStep;
+                        // This is the moment we "sample" the analog input
+                        let sample = inputData[i];
+
+                        // Bitcrush Logic (Quantization)
+                        // Map -1..1 to integer range, round, then map back
+                        // Using floor for cleaner "staircase" effect visually matched to audio
+                        sample = Math.floor(sample * maxVal) / maxVal;
+                        
+                        lastSample = sample;
+                    }
+                    
+                    outputData[i] = lastSample;
+                }
+            };
+
+            scriptNode.connect(gainNode);
+            startOscillator();
+        }
+
+        function startOscillator() {
+            if (oscillator) oscillator.stop();
+            if (noiseNode) noiseNode.stop();
+
+            if (config.waveType === 'noise') {
+                noiseNode = audioCtx.createBufferSource();
+                noiseNode.buffer = createWhiteNoiseBuffer();
+                noiseNode.loop = true;
+                noiseNode.connect(scriptNode);
+                noiseNode.start();
+            } else {
+                oscillator = audioCtx.createOscillator();
+                oscillator.type = config.waveType;
+                oscillator.frequency.value = config.frequency;
+                oscillator.connect(scriptNode);
+                oscillator.start();
+            }
+            
+            isPlaying = true;
+            updateUIState();
+        }
+
+        function stopAudio() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+            }
+            if (noiseNode) {
+                noiseNode.stop();
+                noiseNode.disconnect();
+            }
+            if (scriptNode) {
+                scriptNode.disconnect();
+            }
+            isPlaying = false;
+            updateUIState();
+        }
+        
+        // Funktion zum Aktualisieren des UI-Zustands (z.B. Button-Sichtbarkeit)
+        function updateUIState() {
+            if (isPlaying) {
+                playBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                playBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        // --- Visualization Logic ---
+        let animationId;
+        let timeOffset = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const cy = h / 2;
+            const amplitude = h / 2.5; // Height scaling
+
+            // Draw Grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, cy);
+            ctx.lineTo(w, cy);
+            ctx.stroke();
+
+            // If audio context is running, use actual time, otherwise simple animation
+            const speed = config.frequency * 0.005; // Visual speed
+            if(isPlaying) timeOffset += 0.5; // Move wave
+
+            // We want to show about 2-3 cycles of the wave
+            // Width in time = 1 / Frequency * 3
+            // Let's map X pixels to Time
+            const cyclesToShow = 3;
+            const timeWindow = cyclesToShow / config.frequency; // seconds visible
+            
+            // 1. DRAW ANALOG PATH (The perfect input)
+            ctx.beginPath();
+            ctx.strokeStyle = '#06b6d4'; // Cyan
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#06b6d4';
+
+            // Generate points for smooth analog line
+            for (let x = 0; x < w; x++) {
+                // t = current time + (x / width) * window size
+                // Animation um Faktor 1.000.000 verlangsamt
+                const t = (Date.now() / 1000000) + (x / w) * timeWindow;
+                
+                let yVal = 0;
+                if (config.waveType === 'sine') {
+                    yVal = Math.sin(2 * Math.PI * config.frequency * t);
+                } else if (config.waveType === 'triangle') {
+                    yVal = Math.asin(Math.sin(2 * Math.PI * config.frequency * t)) * (2/Math.PI);
+                } else if (config.waveType === 'sawtooth') {
+                    // Approximation for visual
+                    yVal = -1 + 2 * ((config.frequency * t) % 1); 
+                } else if (config.waveType === 'noise') {
+                    // Visualizing noise is tricky, let's use a pseudo random relative to x to make it look stable-ish
+                    yVal = (Math.random() * 2 - 1);
+                }
+
+                const y = cy - (yVal * amplitude);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset shadow for next pass
+
+            // 2. DRAW DIGITAL PATH (Sampled & Quantized)
+            ctx.beginPath();
+            ctx.strokeStyle = '#d946ef'; // Magenta
+            ctx.lineWidth = 3;
+            
+            // **********************************************
+            // VISUAL QUANTIZATION LOGIC 
+            // Verwendet nun die volle Bit-Tiefe. Bei Werten > 10 Bit wird die Kurve optisch 
+            // nahezu identisch mit der analogen Kurve, was das Ziel von hoher Bit-Tiefe ist.
+            // **********************************************
+            const visualBitDepth = config.bitDepth; 
+            const visualLevels = Math.pow(2, visualBitDepth);
+            const visualMaxLevel = visualLevels / 2;
+
+            // Sampling parameters (Visual mapping)
+            // Determine how many pixels represent one sample period
+            // Sample Period (T) = 1 / SampleRate
+            // Pixels per second = w / timeWindow
+            // Pixels per sample = (w / timeWindow) / SampleRate
+            const pixelsPerSample = (w / timeWindow) / config.sampleRate;
+
+            let lastSampleX = 0;
+            let lastSampleY = cy;
+
+            for (let x = 0; x < w; x+= Math.max(1, pixelsPerSample)) {
+                // Time at this exact sample point
+                // Animation um Faktor 1.000.000 verlangsamt
+                const t = (Date.now() / 1000000) + (x / w) * timeWindow;
+
+                let analogVal = 0;
+                // Re-calculate perfect value at this sample point
+                if (config.waveType === 'sine') {
+                    analogVal = Math.sin(2 * Math.PI * config.frequency * t);
+                } else if (config.waveType === 'triangle') {
+                    analogVal = Math.asin(Math.sin(2 * Math.PI * config.frequency * t)) * (2/Math.PI);
+                } else if (config.waveType === 'sawtooth') {
+                    analogVal = -1 + 2 * ((config.frequency * t) % 1);
+                } else if (config.waveType === 'noise') {
+                     // For noise visualization to look "sampled", we just grab a random value
+                    analogVal = (Math.random() * 2 - 1);
+                }
+
+                // Quantize for VISUALIZATION
+                let visualDigitalVal = Math.floor(analogVal * visualMaxLevel) / visualMaxLevel;
+                const y = cy - (visualDigitalVal * amplitude);
+
+                // Draw Step (Sample & Hold)
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    // Draw horizontal line from last X to current X (Hold)
+                    ctx.lineTo(x, lastSampleY);
+                    // Draw vertical line to new Y (Change)
+                    ctx.lineTo(x, y);
+                }
+                
+                lastSampleX = x;
+                lastSampleY = y;
+            }
+            // Finish line to edge
+            ctx.lineTo(w, lastSampleY);
+
+            ctx.stroke();
+
+            animationId = requestAnimationFrame(draw);
+        }
+
+        // --- Event Listeners ---
+
+        playBtn.addEventListener('click', () => {
+            initAudio();
+        });
+
+        stopBtn.addEventListener('click', () => {
+            stopAudio();
+        });
+
+        function updateCalculations() {
+            const levels = Math.pow(2, config.bitDepth);
+            lblLevels.textContent = levels;
+            
+            const nyquist = config.sampleRate / 2;
+            lblNyquist.textContent = nyquist + " Hz";
+            // Color code Nyquist warning
+            if (config.frequency > nyquist) {
+                lblNyquist.classList.remove('text-cyan-400');
+                lblNyquist.classList.add('text-rose-500');
+                lblNyquist.textContent += " (ALIASING!)";
+            } else {
+                lblNyquist.classList.add('text-cyan-400');
+                lblNyquist.classList.remove('text-rose-500');
+            }
+
+            // Bitrate = SampleRate * BitDepth * Channels (1)
+            const bitrate = (config.sampleRate * config.bitDepth) / 1000;
+            lblBitrate.textContent = bitrate.toFixed(1) + " kbit/s";
+        }
+
+        // Updates
+        elSampleRate.addEventListener('input', (e) => {
+            config.sampleRate = parseInt(e.target.value);
+            lblSr.textContent = config.sampleRate + " Hz";
+            updateCalculations();
+        });
+
+        elBitDepth.addEventListener('input', (e) => {
+            config.bitDepth = parseInt(e.target.value);
+            lblBit.textContent = config.bitDepth + " Bit";
+            updateCalculations();
+        });
+
+        elFrequency.addEventListener('input', (e) => {
+            config.frequency = parseInt(e.target.value);
+            if(oscillator) oscillator.frequency.value = config.frequency;
+            updateCalculations();
+        });
+
+        elVolume.addEventListener('input', (e) => {
+            config.volume = parseFloat(e.target.value);
+            lblVol.textContent = Math.round(config.volume * 100) + "%";
+            if(gainNode) gainNode.gain.value = config.volume;
+        });
+
+        elWaveType.addEventListener('change', (e) => {
+            config.waveType = e.target.value;
+            if (isPlaying) {
+                // Restart to swap nodes
+                startOscillator();
+            }
+        });
+
+        // Initial Draw
+        updateCalculations();
+        draw();
+
+    </script>
+</body>
+</html>
