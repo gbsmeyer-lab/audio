@@ -317,10 +317,9 @@
                 <!-- 1. Gain-Regler -->
                 <div class="flex flex-col items-center space-y-2">
                     <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
-                    <!-- START-WINKEL VON 0 AUF 45 GEÄNDERT (Gain 1.33) -->
                     <div id="knob-gain-c1" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
-                        data-angle="45" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="1">
-                        <div class="knob-pointer" style="transform: rotate(45deg);"></div>
+                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="1">
+                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
                     </div>
                 </div>
 
@@ -404,7 +403,7 @@
                     <!-- Fader -->
                     <div class="flex flex-col items-center h-full">
                         <div class="relative w-12 flex-1 flex items-center justify-center">
-                            <input type="range" id="fader-c1" min="0" max="127" value="127" class="fader absolute transform -rotate-90" data-channel="1">
+                            <input type="range" id="fader-c1" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="1">
                         </div>
                         <label for="fader-c1" class="text-sm font-bold mt-2">CH 1</label>
                     </div>
@@ -421,10 +420,9 @@
                 <!-- 1. Gain-Regler -->
                 <div class="flex flex-col items-center space-y-2">
                     <label class="text-sm font-bold uppercase tracking-wider text-red-400">Gain</label>
-                    <!-- START-WINKEL VON 0 AUF 45 GEÄNDERT (Gain 1.33) -->
                     <div id="knob-gain-c2" class="knob knob-lg bg-gray-700 border-2 border-gray-600" 
-                        data-angle="45" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="2">
-                        <div class="knob-pointer" style="transform: rotate(45deg);"></div>
+                        data-angle="-135" data-min-angle="-135" data-max-angle="135" data-target="inputGain" data-channel="2">
+                        <div class="knob-pointer" style="transform: rotate(-135deg);"></div>
                     </div>
                 </div>
 
@@ -508,7 +506,7 @@
                     <!-- Fader -->
                     <div class="flex flex-col items-center h-full">
                         <div class="relative w-12 flex-1 flex items-center justify-center">
-                            <input type="range" id="fader-c2" min="0" max="127" value="127" class="fader absolute transform -rotate-90" data-channel="2">
+                            <input type="range" id="fader-c2" min="0" max="127" value="100" class="fader absolute transform -rotate-90" data-channel="2">
                         </div>
                         <label for="fader-c2" class="text-sm font-bold mt-2">CH 2</label>
                     </div>
@@ -560,9 +558,9 @@
 
             // --- NEUE KONSTANTEN FÜR DIE VERSTÄRKUNG ---
             // Max Gain für den Input Gain Regler (2.0)
-            const MAX_INPUT_GAIN = 2.0; 
+            const MAX_INPUT_GAIN = 0.1; 
             // Max Gain für die AUX Sends 
-            const MAX_AUX_GAIN = 0.5;
+            const MAX_AUX_GAIN = 10.0;
 
 
             // Hilfsfunktion: Wert von einem Bereich auf einen anderen abbilden
@@ -591,7 +589,7 @@
                 ch.oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime); 
 
                 ch.inputGain = audioCtx.createGain(); 
-                ch.inputSplitter = audioCtx.createGain(); 
+                ch.inputSplitter = audioCtx.createGain(); // Verteiler-Knoten für Main und Aux
                 ch.distortion = audioCtx.createWaveShaper();
                 ch.distortion.curve = makeDistortionCurve(5);
                 ch.distortion.oversample = '4x';
@@ -612,14 +610,15 @@
                 ch.oscillator.connect(ch.inputGain);
                 ch.inputGain.connect(ch.inputSplitter);
                 
-                // Hauptkanal-Pfad
+                // Hauptkanal-Pfad (der hörbare Pfad)
                 ch.inputSplitter.connect(ch.distortion);
                 ch.distortion.connect(ch.panner); 
                 ch.panner.connect(ch.faderGain);
                 ch.faderGain.connect(ch.analyser);
-                ch.analyser.connect(audioCtx.destination); // Main-Out
+                ch.analyser.connect(audioCtx.destination); // Main-Out (Hörbarer Ausgang)
 
-                // AUX-Send-Pfade
+                // AUX-Send-Pfade (NUR für Metering/Messung)
+                // Diese Pfade führen NICHT zum audioCtx.destination
                 ch.inputSplitter.connect(ch.auxGain1); 
                 ch.auxGain1.connect(auxMeters['AUX1-CH' + id].analyser);
                 
@@ -653,8 +652,8 @@
                     meter.dataArray = new Float32Array(meter.analyser.fftSize);
                     meter.leds = document.querySelectorAll(`[data-meter-id="${id}"]`);
 
-                    // WICHTIG: Analyser müssen mit einem Ausgang verbunden sein, damit sie aktiv sind.
-                    meter.analyser.connect(audioCtx.destination); 
+                    // Die AUX Analysers dienen NUR zum Messen (Metering). Sie dürfen NICHT mit audioCtx.destination verbunden werden, 
+                    // da sie sonst zusätzlich zum Hauptkanal hörbar wären. Die Analyser funktionieren als "Taps" auch ohne direkten Output.
                 });
 
 
@@ -676,6 +675,11 @@
                 startButton.textContent = "Audio Context Running";
                 startButton.disabled = true;
                 statusEl.textContent = "Audio is ON (CH 1: 440Hz, CH 2: 660Hz)";
+                
+                // Sicherstellen, dass der Kontext läuft
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
 
                 // Startet die Visualisierungsschleife
                 visualize();
@@ -689,18 +693,29 @@
                 const channelId = parseInt(knob.dataset.channel);
                 const newAngle = parseFloat(knob.dataset.angle);
                 const ch = channels[channelId];
+                const now = audioCtx.currentTime;
 
                 if (target === 'inputGain') {
                     // Verwende den MAX_INPUT_GAIN (2.0)
                     const gainValue = mapRange(newAngle, -135, 135, 0, MAX_INPUT_GAIN);
-                    ch.inputGain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
+                    // setTargetAtTime ist robuster für Live-Änderungen als setValueAtTime
+                    ch.inputGain.gain.setTargetAtTime(gainValue, now, 0.015);
+                    
+                    // DEBUG-Ausgabe für den User
+                    statusEl.textContent = `CH${channelId} Gain: ${gainValue.toFixed(2)}`;
+                    
                 } else if (target && target.startsWith('auxGain')) {
                     // Max Aux Gain beibehalten (0.5)
                     const gainValue = mapRange(newAngle, -135, 135, 0, MAX_AUX_GAIN);
-                    ch[target].gain.setValueAtTime(gainValue, audioCtx.currentTime);
+                    ch[target].gain.setTargetAtTime(gainValue, now, 0.015);
+
+                    // Debug-Ausgabe nur für AUX
+                    statusEl.textContent = `CH${channelId} ${target}: ${gainValue.toFixed(2)}`;
                 } else if (target === 'panner') {
                     const panValue = mapRange(newAngle, -60, 60, -1, 1);
-                    ch.panner.pan.setValueAtTime(panValue, audioCtx.currentTime);
+                    ch.panner.pan.setTargetAtTime(panValue, now, 0.015);
+                    
+                    statusEl.textContent = `CH${channelId} Pan: ${panValue.toFixed(2)}`;
                 }
             }
 
@@ -708,9 +723,13 @@
             function updateFader(channelId) {
                 if (!audioCtx) return;
                 const ch = channels[channelId];
+                const now = audioCtx.currentTime;
                 // Max Fader Gain auf 1.0
                 const gainValue = mapRange(ch.fader.value, 0, 127, 0, 1.0);
-                ch.faderGain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
+                ch.faderGain.gain.setTargetAtTime(gainValue, now, 0.015);
+                
+                // Status-Update auch für Fader
+                statusEl.textContent = `CH${channelId} Fader: ${gainValue.toFixed(2)}`;
             }
 
             // --- Logik für Drehregler (Unverändert) ---
