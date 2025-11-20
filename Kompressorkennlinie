@@ -1,0 +1,284 @@
+<!-- HAUPTCONTAINER: Klasse für dynamische Instanziierung hinzugefügt -->
+<div
+  class="compressor-visualizer-instance max-w-full flex flex-row flex-wrap gap-8 p-6 bg-gray-900 rounded-xl shadow-2xl items-start justify-center mx-auto">
+  <!-- Linke Seite: Kompressor Display -->
+  <div class="flex-shrink-0">
+    <h2 class="text-2xl font-bold mb-1 text-left text-pink-300">Kompressor
+      Kennlinie</h2>
+    <p class="text-left text-sm mb-4 text-gray-400 max-w-[400px]">Nutzen Sie
+      dieses Tool, um die Wirkung eines Audiokompressors in Echtzeit zu
+      visualisieren. Die grüne Kurve zeigt das Verhältnis von Eingangspegel
+      (X-Achse) zu Ausgangspegel (Y-Achse).</p>
+    <!-- Canvas verwendet jetzt data-element für die JS-Auswahl und eine Klasse für den CSS-Rahmen -->
+    <canvas class="rounded-lg shadow-lg compressor-visualizer-canvas"
+      width="400" height="400" data-element="canvas"></canvas>
+  </div>
+  <!-- Rechte Seite: Parameter Steuerung (Schieberegler) -->
+  <div class="flex-grow min-w-[280px]">
+    <h2 class="text-2xl font-bold mb-6 text-left text-pink-300">Parameter
+      Steuerung (Schieberegler)</h2>
+    <div class="grid grid-cols-1 gap-6" data-element="controls">
+      <!-- Ratio (Verhältnis) -->
+      <div class="control-container">
+        <!-- label for ist nun optional, da die Interaktion über JS gesteuert wird, data-element ist der Key -->
+        <label class="text-lg font-semibold text-pink-300">Verhältnis
+          (Ratio)</label> <input
+          class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500 mt-2"
+          max="20" min="1" step="0.1" type="range" value="4"
+          data-element="ratioKnob"> <span class="text-lg font-mono mt-2"
+          data-element="ratioValue">4.0:1</span></div>
+      <!-- Threshold (Schwellwert) -->
+      <div class="control-container"><label
+          class="text-lg font-semibold text-pink-300">Schwellwert
+          (Threshold)</label> <input
+          class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500 mt-2"
+          max="0" min="-60" step="0.5" type="range" value="-20"
+          data-element="thresholdKnob"> <span class="text-lg font-mono mt-2"
+          data-element="thresholdValue">-20.0 dB</span></div>
+      <!-- Make-up Gain (Nachverstärkung) -->
+      <div class="control-container"><label
+          class="text-lg font-semibold text-pink-300">Nachverstärkung (Make-up
+          Gain)</label> <input
+          class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500 mt-2"
+          max="18" min="0" step="0.1" type="range" value="0"
+          data-element="makeupGainKnob"> <span class="text-lg font-mono mt-2"
+          data-element="makeupGainValue">+0.0 dB</span></div>
+      <!-- Limiter (Max. Ausgangspegel) -->
+      <div class="control-container"><label
+          class="text-lg font-semibold text-pink-300">Limiter (Max.
+          Ausgangspegel)</label> <input
+          class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500 mt-2"
+          max="0" min="-10" step="0.5" type="range" value="0"
+          data-element="limiterKnob"> <span class="text-lg font-mono mt-2"
+          data-element="limiterValue">0.0 dB</span></div>
+    </div>
+  </div>
+</div>
+<!-- JavaScript ist in eine IIFE eingeschlossen, um Konflikte zu vermeiden. -->
+<p>
+  <script>
+    (function() {
+
+      // Finde alle Instanzen des Visualisierers auf der Seite
+      const instances = document.querySelectorAll(
+        '.compressor-visualizer-instance');
+
+      // Initialisiere jede Instanz separat
+      instances.forEach(initializeInstance);
+
+      /**
+       * Initialisiert eine einzelne Kompressor-Visualizer-Instanz.
+       * @param {HTMLElement} container - Der Haupt-Container-Div der Instanz.
+       */
+      function initializeInstance(container) {
+        // --- Variablen für Canvas und Kontext, lokal auf die Instanz ---
+        const canvas = container.querySelector('[data-element="canvas"]');
+        if (!canvas) return; // Sicherheits-Check
+        const ctx = canvas.getContext('2d');
+        const CANVAS_SIZE = 400;
+
+        // Skalenparameter für die Visualisierung (dB)
+        const MIN_DB = -60;
+        const MAX_DB = 10;
+        const RANGE_DB = MAX_DB - MIN_DB;
+
+        // Parameter-Input-Elemente (jetzt mit Scoped Querying über data-element)
+        const ratioKnob = container.querySelector(
+          '[data-element="ratioKnob"]');
+        const thresholdKnob = container.querySelector(
+          '[data-element="thresholdKnob"]');
+        const makeupGainKnob = container.querySelector(
+          '[data-element="makeupGainKnob"]');
+        const limiterKnob = container.querySelector(
+          '[data-element="limiterKnob"]');
+
+        // Wert-Anzeige-Elemente
+        const ratioValueSpan = container.querySelector(
+          '[data-element="ratioValue"]');
+        const thresholdValueSpan = container.querySelector(
+          '[data-element="thresholdValue"]');
+        const makeupGainValueSpan = container.querySelector(
+          '[data-element="makeupGainValue"]');
+        const limiterValueSpan = container.querySelector(
+          '[data-element="limiterValue"]');
+
+
+        /**
+         * Converts a decibel (dB) level to a Canvas Y-coordinate (Output).
+         * @param {number} dbLevel - The dB value.
+         * @returns {number} The Y-coordinate on the canvas.
+         */
+        function dbToY(dbLevel) {
+          const normalized = (dbLevel - MIN_DB) / RANGE_DB;
+          return CANVAS_SIZE * (1 - normalized);
+        }
+
+        /**
+         * Converts a decibel (dB) level to a Canvas X-coordinate (Input).
+         * @param {number} dbLevel - The dB value.
+         * @returns {number} The X-coordinate on the canvas.
+         */
+        function dbToX(dbLevel) {
+          const normalized = (dbLevel - MIN_DB) / RANGE_DB;
+          return CANVAS_SIZE * normalized;
+        }
+
+        /**
+         * Draws the entire compressor curve based on current settings.
+         */
+        function drawCompressorCurve() {
+          // Read parameters from the scoped range inputs
+          const T = parseFloat(thresholdKnob.value); // Threshold
+          const R = parseFloat(ratioKnob.value); // Ratio
+          const G = parseFloat(makeupGainKnob.value); // Make-up Gain
+          const L = parseFloat(limiterKnob.value); // Limiter
+
+          // Update displays
+          ratioValueSpan.textContent = R.toFixed(1) + ':1';
+          thresholdValueSpan.textContent = T.toFixed(1) + ' dB';
+          makeupGainValueSpan.textContent = (G >= 0 ? '+' : '') + G.toFixed(
+            1) + ' dB';
+          limiterValueSpan.textContent = L.toFixed(1) + ' dB';
+
+          // 1. Clear canvas and draw background
+          ctx.fillStyle = '#0a0a0a';
+          ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+          // 2. Draw grid lines and labels
+
+          // Background Grid (10 dB steps)
+          ctx.strokeStyle = '#666';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let db = -60; db <= 10; db += 10) {
+            const x = dbToX(db);
+            const y = dbToY(db);
+
+            // Vertical Lines (Input)
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, CANVAS_SIZE);
+
+            // Horizontal Lines (Output)
+            ctx.moveTo(0, y);
+            ctx.lineTo(CANVAS_SIZE, y);
+
+            // Labels
+            ctx.fillStyle = '#E0E0E0';
+            ctx.font = '10px sans-serif';
+            if (db >= MIN_DB && db <= MAX_DB) {
+              // X-Axis (Input Level)
+              ctx.fillText(db + ' dB', x + 2, CANVAS_SIZE - 2);
+              // Y-Axis (Output Level)
+              ctx.fillText(db + ' dB', 2, y - 2);
+            }
+          }
+          ctx.stroke();
+
+          // 1:1 Line (Unprocessed Signal Path)
+          ctx.strokeStyle = '#888';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(dbToX(MIN_DB), dbToY(MIN_DB));
+          ctx.lineTo(dbToX(MAX_DB), dbToY(MAX_DB));
+          ctx.stroke();
+
+          // 0 dBFS Line (Max Peak Level)
+          const zeroY = dbToY(0);
+          ctx.strokeStyle = '#AAAAAA';
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(0, zeroY);
+          ctx.lineTo(CANVAS_SIZE, zeroY);
+          ctx.stroke();
+          ctx.setLineDash([]); // Reset dash
+
+          // 3. Draw Compressor Curve
+          ctx.strokeStyle = '#4ade80'; // Bright Green
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+
+          let firstPoint = true;
+
+          // Iterate over all possible input values
+          for (let inputDb = MIN_DB; inputDb <= MAX_DB; inputDb += 0.5) {
+            let outputDb;
+
+            if (inputDb < T) {
+              // 1. Below Threshold (Linear gain + Make-up)
+              outputDb = inputDb + G;
+            } else {
+              // 2. Above Threshold (Compression + Make-up)
+              // Formula: Output = Threshold + (Input - Threshold) / Ratio + Make-up Gain
+              outputDb = T + (inputDb - T) / R + G;
+            }
+
+            // 3. Apply Limiter (Brickwall-Ceiling)
+            outputDb = Math.min(outputDb, L);
+
+            // Clamp output to the display range
+            outputDb = Math.min(Math.max(outputDb, MIN_DB), MAX_DB);
+
+            const x = dbToX(inputDb);
+            const y = dbToY(outputDb);
+
+            if (firstPoint) {
+              ctx.moveTo(x, y);
+              firstPoint = false;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+
+          ctx.stroke();
+
+          // 4. Threshold and Limiter Markers
+
+          // Threshold (T) - Vertical Line
+          const T_x = dbToX(T);
+          ctx.strokeStyle = '#facc15'; // Yellow
+          ctx.setLineDash([2, 4]);
+          ctx.beginPath();
+          ctx.moveTo(T_x, 0);
+          ctx.lineTo(T_x, CANVAS_SIZE);
+          ctx.stroke();
+
+          // Limiter (L) - Horizontal Line (Max Output)
+          const L_y = dbToY(L);
+          ctx.strokeStyle = '#f87171'; // Red
+          ctx.beginPath();
+          ctx.moveTo(0, L_y);
+          ctx.lineTo(CANVAS_SIZE, L_y);
+          ctx.stroke();
+          ctx.setLineDash([]); // Reset dash
+
+          // Mark the Threshold point on the curve
+          let T_output = T + G;
+          T_output = Math.min(T_output, L);
+          const T_y_point = dbToY(T_output);
+
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath();
+          ctx.arc(T_x, T_y_point, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // --- Event Listener Setup (Scoped) ---
+        ratioKnob.addEventListener('input', drawCompressorCurve);
+        thresholdKnob.addEventListener('input', drawCompressorCurve);
+        makeupGainKnob.addEventListener('input', drawCompressorCurve);
+        limiterKnob.addEventListener('input', drawCompressorCurve);
+
+        // Initial draw
+        drawCompressorCurve();
+      }
+
+      // Sicherstellen, dass die Initialisierung nach dem Laden des DOM erfolgt
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          document.querySelectorAll('.compressor-visualizer-instance')
+            .forEach(initializeInstance);
+        });
+      }
+    })();
+  </script>
+</p>
