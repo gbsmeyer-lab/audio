@@ -1,0 +1,394 @@
+<div class="max-w-4xl mx-auto bg-gray-900 rounded-xl p-6 shadow-2xl">
+  <h1 class="text-3xl font-extrabold mb-2 text-blue-400">Sinuswellen-Generator
+    mit Clipping</h1>
+  <p class="text-gray-400 mb-6">Klicken und ziehen Sie direkt auf die Welle, um
+    sie zu verändern: Ziehen Sie **vertikal** für die Amplitude und
+    **horizontal** für die Frequenz. <br><span
+      class="font-bold text-yellow-300">Ab der rot gestrichelten Linie sollten
+      Sie eine deutlich hörbare Verzerrung wahrnehmen, die durch die zunehmende
+      Rechteckform der Welle hervorgerufen wird.</span></p>
+  <!-- Canvas und Statusanzeige -->
+  <div class="flex flex-col items-center"><!-- Canvas für die Visualisierung -->
+    <canvas id="waveCanvas" class="canvas-container" width="800"
+      height="300"></canvas> <!-- Steuerungselemente und Status -->
+    <div class="mt-6 w-full flex justify-center items-center gap-6">
+      <!-- Stop-Button --> <button id="stopButton"
+        class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg transition duration-150 transform hover:scale-105"
+        disabled="disabled"> Ton Stoppen </button>
+      <!-- Statusanzeige für Parameter -->
+      <div
+        class="p-4 bg-gray-700 rounded-lg shadow-inner flex justify-around text-lg font-mono flex-1 min-w-0">
+        <div>Amplitude: <span id="amplitudeDisplay"
+            class="text-yellow-400">0.80</span></div>
+        <div>Frequenz: <span id="frequencyDisplay"
+            class="text-green-400">4.0</span> Zyklen</div>
+        <div id="clippingStatus" class="text-red-500 font-bold hidden">CLIPPING
+          AKTIV</div>
+      </div>
+    </div>
+  </div>
+</div>
+<p>
+  <script>
+    (function() {
+      // --- Canvas Setup ---
+      const canvas = document.getElementById('waveCanvas');
+      const ctx = canvas.getContext('2d');
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const CENTER_Y = HEIGHT / 2;
+
+      // --- Parameter und Konstanten ---
+      let currentAmplitude =
+      0.8; // Skaliert von 0.0 bis 1.5 (1.0 ist 100% ohne Clipping)
+      let currentFrequency =
+      4.0; // Anzahl der Zyklen, die auf dem Bildschirm sichtbar sind
+      const MAX_FREQUENCY = 12;
+      const MIN_FREQUENCY = 0.5;
+      const MAX_AMPLITUDE = 1.5;
+
+      // --- Audio API Variablen ---
+      let audioCtx = null;
+      let oscillator = null;
+      let gainNode = null; // Signalpegel-Regler VOR dem Clipper
+      let distortionNode = null; // WaveShaperNode für das Hard Clipping
+      let isDistortionActive = false;
+      const BASE_FREQUENCY_HZ = 100; // Basis Frequenz in Hz
+      const FREQUENCY_RANGE_HZ = 700; // Range bis 800 Hz
+
+      // Konstanten für die Lautstärke-Steuerung
+      const MASTER_GAIN_AT_1 =
+      0.5; // Final volume when amplitude is exactly 1.0 (safety master volume)
+      const AGGRESSION_FACTOR =
+      4.0; // Controls how fast the distortion increases (strong distortion)
+
+      // --- Interaktions-Status ---
+      let isDragging = false;
+      let lastMouseX = 0;
+      let lastMouseY = 0;
+
+      // --- DOM Elemente ---
+      const ampDisplay = document.getElementById('amplitudeDisplay');
+      const freqDisplay = document.getElementById('frequencyDisplay');
+      const clippingStatus = document.getElementById('clippingStatus');
+      const stopButton = document.getElementById('stopButton');
+
+      /**
+       * Erstellt die WaveShaper-Kurve für Hard Clipping (Begrenzung auf +/- 1.0).
+       * @returns {Float32Array} Die Verzerrungskurve.
+       */
+      function makeHardClipCurve() {
+        const n_samples = 2048;
+        const curve = new Float32Array(n_samples);
+
+        for (let i = 0; i < n_samples; ++i) {
+          // x ist der Eingangswert, normalisiert zwischen -1 und 1
+          const x = i * 2 / n_samples - 1;
+
+          // Hard Clipping: Der Ausgangswert (y) ist maximal +/- 1
+          curve[i] = Math.max(-1, Math.min(1, x));
+        }
+        return curve;
+      }
+
+      /**
+       * Initialisiert den AudioContext und alle Nodes.
+       */
+      function initializeAudio() {
+        if (audioCtx && oscillator) {
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(e => console.error("Audio Resume failed:",
+              e));
+          }
+          return;
+        }
+
+        try {
+          // Erstelle AudioContext
+          audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
+          // Node 1: Oszillator (Pure Sinuswelle)
+          oscillator = audioCtx.createOscillator();
+          oscillator.type = 'sine';
+
+          // Node 2: Gain Node (Steuert den Signalpegel VOR dem Clipping)
+          gainNode = audioCtx.createGain();
+
+          // Node 3: Distortion Node (Führt das Hard Clipping durch)
+          distortionNode = audioCtx.createWaveShaper();
+          distortionNode.curve = makeHardClipCurve();
+          distortionNode.oversample =
+          '4x'; // Verbessert die Audioqualität der Verzerrung
+
+          // Verbinde die Anfangskette: Oszillator -> Gain
+          oscillator.connect(gainNode);
+
+          // Setze initiale Werte und starte
+          updateAudioParameters();
+          oscillator.start(0);
+
+          stopButton.disabled = false;
+          console.log('Audio Context gestartet.');
+        } catch (e) {
+          console.error('Web Audio API konnte nicht initialisiert werden:',
+          e);
+        }
+      }
+
+      /**
+       * Verbindet die Audio-Nodes basierend auf dem Clipping-Status neu.
+       * Wenn Clipping aktiv, dann: Gain -> Distortion -> Destination
+       * Wenn Clipping inaktiv, dann: Gain -> Destination
+       */
+      function updateAudioRouting() {
+        if (!gainNode || !distortionNode || !audioCtx) return;
+
+        // Trenne alle Verbindungen vom GainNode
+        gainNode.disconnect();
+        distortionNode.disconnect();
+
+        if (isDistortionActive) {
+          // Kette mit Clipping: Gain -> Distortion -> Destination
+          gainNode.connect(distortionNode);
+          distortionNode.connect(audioCtx.destination);
+          console.log("Routing: Distortion Aktiv (Aggressiv)");
+        } else {
+          // Saubere Kette: Gain -> Destination
+          gainNode.connect(audioCtx.destination);
+          console.log("Routing: Clean Aktiv");
+        }
+      }
+
+
+      /**
+       * Aktualisiert Frequenz und Gain des Audio-Oszillators/Gain-Nodes.
+       */
+      function updateAudioParameters() {
+        if (!audioCtx || !oscillator || !gainNode) return;
+
+        // Stellt sicher, dass der Context fortgesetzt wird (z.B. nach einem Stop)
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(e => console.error("Audio Resume failed:",
+            e));
+        }
+
+        const now = audioCtx.currentTime;
+
+        // --- 1. Clipping Status bestimmen und Routing aktualisieren ---
+        const clippingNeeded = currentAmplitude > 1.0;
+        if (clippingNeeded !== isDistortionActive) {
+          isDistortionActive = clippingNeeded;
+          updateAudioRouting(); // Schaltet die Kette um
+        }
+
+        // --- 2. Frequenz-Update (Tonhöhe) ---
+        const normalizedFreq = (currentFrequency - MIN_FREQUENCY) / (
+          MAX_FREQUENCY - MIN_FREQUENCY);
+        const audibleFreq = BASE_FREQUENCY_HZ + (normalizedFreq *
+          FREQUENCY_RANGE_HZ);
+        oscillator.frequency.setValueAtTime(audibleFreq, now);
+
+        // --- 3. Signal Level/Gain Update (NEUE AGGRESSIVE LOGIK) ---
+        let signalLevel;
+
+        if (isDistortionActive) {
+          // Aggressiver Gain Boost:
+          // Stellt sicher, dass der Pegel bei 1.0 am Master Gain Level (0.5) ansetzt
+          // und dann schnell ansteigt (4x Faktor).
+          // Bei Amp 1.5 erreicht der Gain 2.5, was eine extreme Verzerrung im Clipper erzeugt.
+          signalLevel = (currentAmplitude - 1.0) * AGGRESSION_FACTOR +
+            MASTER_GAIN_AT_1;
+
+          // Begrenze den Gain auf 3.0, um zu lautes Audio zu vermeiden.
+          signalLevel = Math.min(signalLevel, 3.0);
+        } else {
+          // Clean path: Lineares Wachstum bis zum Master Gain Level (0.5)
+          signalLevel = currentAmplitude * MASTER_GAIN_AT_1;
+        }
+
+        gainNode.gain.setValueAtTime(signalLevel, now);
+      }
+
+
+      // --- Funktionen zur Parameterberechnung und -begrenzung ---
+
+      /**
+       * Begrenzt den Wert der Amplitude und zeigt den Clipping-Status an.
+       * @param {number} amp - Die neue Amplitude.
+       */
+      function setAmplitude(amp) {
+        currentAmplitude = Math.min(Math.max(amp, 0.01), MAX_AMPLITUDE);
+        ampDisplay.textContent = currentAmplitude.toFixed(2);
+
+        // Clipping-Status (Visuell) aktualisieren
+        if (currentAmplitude > 1.01) {
+          clippingStatus.classList.remove('hidden');
+        } else {
+          clippingStatus.classList.add('hidden');
+        }
+        if (audioCtx) updateAudioParameters();
+      }
+
+      /**
+       * Begrenzt den Wert der Frequenz.
+       * @param {number} freq - Die neue Frequenz.
+       */
+      function setFrequency(freq) {
+        currentFrequency = Math.min(Math.max(freq, MIN_FREQUENCY),
+          MAX_FREQUENCY);
+        freqDisplay.textContent = currentFrequency.toFixed(1);
+        if (audioCtx) updateAudioParameters();
+      }
+
+      /**
+       * Hält den Ton an und setzt den Audio Context zurück.
+       */
+      function stopAudio() {
+        if (oscillator) {
+          try {
+            oscillator.stop(audioCtx.currentTime);
+          } catch (e) {
+            console.warn("Oscillator could not stop gracefully:", e);
+          }
+          oscillator.disconnect();
+          oscillator = null;
+        }
+        if (audioCtx) {
+          audioCtx.close().then(() => {
+            audioCtx = null;
+            stopButton.disabled = true;
+            isDistortionActive = false;
+            console.log('Audio Context gestoppt und geschlossen.');
+          });
+        }
+      }
+
+
+      /**
+       * Berechnet den tatsächlichen Ausgangswert (mit Clipping) für die Visualisierung.
+       * @param {number} inputVal - Der theoretische Wert (Sinuswelle).
+       * @returns {number} Der auf den Bereich [-1, 1] begrenzte Wert.
+       */
+      function applyClipping(inputVal) {
+        // Clipping findet bei ±1.0 statt
+        return Math.max(-1.0, Math.min(1.0, inputVal));
+      }
+
+      /**
+       * Zeichnet die Sinuswelle und das Gitter.
+       */
+      function drawWave() {
+        // 1. Canvas löschen
+        ctx.fillStyle = '#0f172a'; // Sehr dunkles Blau
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        // 2. Gitter und Achsen zeichnen (wie zuvor)
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, CENTER_Y);
+        ctx.lineTo(WIDTH, CENTER_Y);
+        ctx.stroke();
+
+        // Clipping-Linien (bei ±1.0)
+        const clipY1 = CENTER_Y - HEIGHT / 2 * 1 / MAX_AMPLITUDE;
+        const clipY2 = CENTER_Y + HEIGHT / 2 * 1 / MAX_AMPLITUDE;
+
+        ctx.strokeStyle = '#f87171'; // Rot für Clipping
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, clipY1);
+        ctx.lineTo(WIDTH, clipY1);
+        ctx.moveTo(0, clipY2);
+        ctx.lineTo(WIDTH, clipY2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 3. Sinuswelle zeichnen
+        ctx.strokeStyle = '#22c55e'; // Helles Grün
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        // Skalierungsfaktor für die Anzeige im Canvas
+        const scaleFactor = (HEIGHT / 2) / MAX_AMPLITUDE;
+
+        for (let x = 0; x < WIDTH; x++) {
+          const normalizedX = x / WIDTH;
+
+          // Theoretische Sinuswelle (ungeclipped)
+          const theoreticalVal = currentAmplitude * Math.sin(2 * Math.PI *
+            currentFrequency * normalizedX);
+
+          // Tatsächlicher Wert nach Clipping (auf ±1.0 begrenzt)
+          const clippedVal = applyClipping(theoreticalVal);
+
+          // Konvertierung in Canvas-Koordinate
+          const y = CENTER_Y - clippedVal * scaleFactor;
+
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+
+        // Optional: Animation-Loop für kontinuierliches Redraw
+        requestAnimationFrame(drawWave);
+      }
+
+      // --- Event Handler für die Interaktion (Click and Drag) ---
+
+      canvas.addEventListener('mousedown', (e) => {
+        // Audio beim ersten Klick starten
+        initializeAudio();
+
+        isDragging = true;
+        lastMouseX = e.offsetX;
+        lastMouseY = e.offsetY;
+        canvas.style.cursor = 'grabbing';
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const deltaX = mouseX - lastMouseX;
+        const deltaY = mouseY - lastMouseY;
+
+        // --- Amplitude (Vertikale Bewegung) ---
+        if (Math.abs(deltaY) > 0) {
+          const ampChange = -deltaY * 0.005;
+          setAmplitude(currentAmplitude + ampChange);
+        }
+
+        // --- Frequenz (Horizontale Bewegung) ---
+        if (Math.abs(deltaX) > 0) {
+          const freqChange = deltaX * 0.005;
+          setFrequency(currentFrequency + freqChange);
+        }
+
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          canvas.style.cursor = 'grab';
+        }
+      });
+
+      stopButton.addEventListener('click', stopAudio);
+
+      // --- Initialisierung ---
+      setAmplitude(currentAmplitude);
+      setFrequency(currentFrequency);
+      // Starte den Animations-Loop
+      drawWave();
+    })();
+  </script>
+</p>
