@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Kompressor Visualisierer (DAW Style)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2a2a2a;
+            --text-color: #e0e0e0;
+            --accent-color: #00d2ff; /* Cyan für Output */
+            --input-color: #555555; /* Grau für Input */
+            --reduction-color: #ff4444; /* Rot für Gain Reduction */
+            --grid-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        h1 { margin-top: 0; margin-bottom: 10px; font-size: 1.2rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+        }
+
+        /* Linke Seite: Visualisierung */
+        .viz-container {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            height: 100%;
+            min-width: 0; /* Wichtig für Flexbox Canvas Resizing */
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            background-color: #000;
+            border: 1px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #waveformCanvas { height: 100%; }
+        #grCanvas { height: 100%; }
+
+        .wrapper-top { flex: 2; }
+        .wrapper-bottom { flex: 1; }
+
+        .canvas-label {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 6px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 10;
+            color: #bbb;
+        }
+
+        /* Styles für die GR-Wert Anzeige */
+        .gr-value-display {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--reduction-color);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #522;
+            z-index: 10;
+            pointer-events: none;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Grid Linien Labels */
+        .grid-label {
+            position: absolute;
+            right: 5px;
+            font-size: 0.7rem;
+            color: #555;
+            pointer-events: none;
+        }
+
+        /* Rechte Seite: Kontrollen */
+        .controls-container {
+            flex: 1;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            min-width: 280px;
+            max-width: 350px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+
+        .value-display {
+            font-family: monospace;
+            color: var(--accent-color);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin: 8px 0;
+        }
+
+        input[type=range]:focus { outline: none; }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #555;
+            border-radius: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(1px); }
+        .btn-primary.active { background-color: #ff4444; color: white; }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.75rem;
+            margin-top: 2px;
+            padding-left: 5px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; color: #aaa; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        small { color: #888; font-size: 0.75rem; line-height: 1.2; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; overflow-y: auto;}
+            .viz-container { flex: none; height: 400px; }
+            body { height: auto; overflow-y: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Audio Kompressor: Wellenform-Analyse</h1>
+
+    <div class="main-container">
+        <!-- Visualisierungs-Bereich -->
+        <div class="viz-container">
+            
+            <!-- Wellenform Bereich -->
+            <div class="canvas-wrapper wrapper-top">
+                <div class="canvas-label">Signal-Historie (DAW View)</div>
+                <!-- DB Grid Lines Labels -->
+                <div class="grid-label" style="top: 5%">0 dB</div>
+                <div class="grid-label" style="top: 25%">-6 dB</div>
+                <div class="grid-label" style="top: 50%">-inf</div>
+                <div class="grid-label" style="top: 75%">-6 dB</div>
+                <div class="grid-label" style="bottom: 5%">0 dB</div>
+                
+                <canvas id="waveformCanvas"></canvas>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="background: var(--input-color)"></div>Input (Original)</div>
+                <div class="legend-item"><div class="dot" style="background: var(--accent-color)"></div>Output (Komprimiert)</div>
+            </div>
+
+            <!-- Gain Reduction Bereich -->
+            <div class="canvas-wrapper wrapper-bottom">
+                <div class="canvas-label">Gain Reduction (Pegelreduktion)</div>
+                <!-- Das Element für den numerischen Wert -->
+                <div id="grValueDisplay" class="gr-value-display">0.0 dB</div>
+                
+                <div class="grid-label" style="top: 5%">0 dB</div>
+                <div class="grid-label" style="bottom: 5%">-30 dB</div>
+                <canvas id="grCanvas"></canvas>
+            </div>
+             <div class="legend">
+                <div class="legend-item"><div class="dot" style="background: var(--reduction-color)"></div>Gain Reduction Verlauf</div>
+            </div>
+        </div>
+
+        <!-- Kontroll-Bereich -->
+        <div class="controls-container">
+            <button id="playBtn" class="btn-primary">▶ Start Audio</button>
+            <p style="font-size: 0.8rem; color: #999; margin:0; text-align:center;">
+                Signal: Kick & Snare Loop<br>
+                <span style="font-size: 0.7rem; opacity:0.7;">Pegelspitzen bei ca. -6 dB</span>
+            </p>
+            
+            <hr style="border: 0; border-top: 1px solid #444; width: 100%; margin: 5px 0;">
+
+            <div class="control-group">
+                <label>Threshold <span id="val-thresh" class="value-display">-20 dB</span></label>
+                <input type="range" id="threshold" min="-60" max="0" step="1" value="-20">
+                <small>Schwellenwert: Alles darüber wird leiser.</small>
+            </div>
+
+            <div class="control-group">
+                <label>Ratio <span id="val-ratio" class="value-display">4:1</span></label>
+                <input type="range" id="ratio" min="1" max="20" step="0.5" value="4">
+                <small>Verhältnis: Wie stark wird gedrückt?</small>
+            </div>
+
+            <div class="control-group">
+                <label>Attack <span id="val-attack" class="value-display">10 ms</span></label>
+                <input type="range" id="attack" min="0.001" max="1" step="0.001" value="0.010">
+                <small>Einschaltzeit: Lässt Transienten durch?</small>
+            </div>
+
+            <div class="control-group">
+                <label>Release <span id="val-release" class="value-display">250 ms</span></label>
+                <input type="range" id="release" min="0.01" max="1" step="0.01" value="0.25">
+                <small>Ausschaltzeit: Wie schnell erholt sich der Pegel?</small>
+            </div>
+
+            <div class="control-group" style="margin-top: 10px; background: #222; padding: 10px; border-radius: 4px; border: 1px solid #444;">
+                <label>Makeup Gain <span id="val-makeup" class="value-display">0 dB</span></label>
+                <input type="range" id="makeup" min="0" max="24" step="0.5" value="0">
+                <small style="color: #bbb">Lautstärke nachregeln (Output)</small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Setup ---
+        const canvasWave = document.getElementById('waveformCanvas');
+        const ctxWave = canvasWave.getContext('2d', { alpha: false }); // Optimierung
+        const canvasGr = document.getElementById('grCanvas');
+        const ctxGr = canvasGr.getContext('2d', { alpha: false });
+
+        let audioCtx, compressor, makeupNode, analyserIn, analyserOut;
+        let isPlaying = false;
+        let loopInterval;
+        let animationId;
+        
+        // Variable für Peak Hold Speicher
+        let peakGR = 0; 
+
+        // --- Audio Parameter ---
+        const params = {
+            threshold: document.getElementById('threshold'),
+            ratio: document.getElementById('ratio'),
+            attack: document.getElementById('attack'),
+            release: document.getElementById('release'),
+            makeup: document.getElementById('makeup')
+        };
+
+        // UI Updates
+        function updateUI() {
+            // WICHTIG: Peak Hold zurücksetzen bei Änderungen, damit man den neuen Wert sieht
+            peakGR = 0;
+
+            document.getElementById('val-thresh').innerText = params.threshold.value + " dB";
+            document.getElementById('val-ratio').innerText = params.ratio.value + ":1";
+            
+            // Ms Formatierung für Attack/Release ist lesbarer
+            let attMs = Math.round(params.attack.value * 1000);
+            document.getElementById('val-attack').innerText = attMs + " ms";
+            
+            let relMs = Math.round(params.release.value * 1000);
+            document.getElementById('val-release').innerText = relMs + " ms";
+            
+            document.getElementById('val-makeup').innerText = "+" + params.makeup.value + " dB";
+
+            if (compressor) {
+                // Setzen der Kompressorparameter
+                compressor.threshold.setValueAtTime(parseFloat(params.threshold.value), audioCtx.currentTime);
+                compressor.ratio.setValueAtTime(parseFloat(params.ratio.value), audioCtx.currentTime);
+                compressor.attack.setValueAtTime(parseFloat(params.attack.value), audioCtx.currentTime);
+                compressor.release.setValueAtTime(parseFloat(params.release.value), audioCtx.currentTime);
+                
+                // Setzen des Makeup Gains
+                const makeupLinear = Math.pow(10, parseFloat(params.makeup.value) / 20);
+                makeupNode.gain.setValueAtTime(makeupLinear, audioCtx.currentTime);
+            }
+        }
+
+        Object.values(params).forEach(el => el.addEventListener('input', updateUI));
+
+        // --- Audio Engine ---
+        function initAudio() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            // Reset Peak Wert bei Neustart
+            peakGR = 0;
+
+            // Nodes erstellen
+            compressor = audioCtx.createDynamicsCompressor();
+            compressor.knee.value = 0; // Hard Knee für präzise Didaktik
+            
+            makeupNode = audioCtx.createGain();
+            analyserIn = audioCtx.createAnalyser();
+            analyserOut = audioCtx.createAnalyser();
+
+            // Settings
+            analyserIn.smoothingTimeConstant = 0; // Direktes Signal
+            analyserOut.smoothingTimeConstant = 0;
+            analyserIn.fftSize = 1024; 
+            analyserOut.fftSize = 1024;
+
+            // --- FIX: STATISCHES ROUTING ---
+            // Wir verkabeln den statischen Teil der Audio-Kette hier nur EINMAL.
+            // AnalyserIn -> Compressor -> Makeup -> AnalyserOut -> Speaker
+            
+            analyserIn.connect(compressor);
+            compressor.connect(makeupNode);
+            makeupNode.connect(analyserOut);
+            analyserOut.connect(audioCtx.destination);
+
+            // Init Params
+            updateUI();
+
+            // Trigger Loop starten
+            playLoop();
+            loopInterval = setInterval(playLoop, 1000); // Alle 1s Loop neu
+            
+            // Visual Loop starten
+            renderLoop();
+        }
+
+        function playLoop() {
+            const t = audioCtx.currentTime;
+            
+            // 1. Kick Drum (Low Frequency Sweep)
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+            
+            gain.gain.setValueAtTime(0.5, t); // ca -6dB Headroom
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+            osc.connect(gain);
+            
+            // 2. Snare (Noise + Tone)
+            const noise = audioCtx.createBufferSource();
+            const noiseGain = audioCtx.createGain();
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for(let i=0; i<data.length; i++) data[i] = (Math.random() * 2 - 1);
+            noise.buffer = noiseBuffer;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = "highpass";
+            filter.frequency.value = 800;
+
+            noise.connect(filter).connect(noiseGain);
+            noiseGain.gain.setValueAtTime(0.4, t + 0.5); // ca -8dB Headroom
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+            
+            noise.start(t + 0.5);
+
+            // Master Chain Routing für DIESEN Durchlauf
+            const mixGain = audioCtx.createGain();
+            gain.connect(mixGain);
+            noiseGain.connect(mixGain);
+
+            // WICHTIG: Wir verbinden nur die Quelle mit dem Eingang der Kette (AnalyserIn).
+            // Der Rest der Kette (Compressor -> Output) ist bereits in initAudio verkabelt.
+            mixGain.connect(analyserIn);
+
+            osc.start(t);
+            osc.stop(t + 0.5);
+        }
+
+        // --- Scrolling Visualization ---
+        
+        let offWaves, offWavesCtx, offGr, offGrCtx;
+
+        function initOffscreen(w, h) {
+            if(!offWaves || offWaves.width !== w || offWaves.height !== h) {
+                offWaves = document.createElement('canvas');
+                offWaves.width = w; offWaves.height = h;
+                offWavesCtx = offWaves.getContext('2d', {alpha: false});
+                offWavesCtx.fillStyle = '#000';
+                offWavesCtx.fillRect(0,0,w,h);
+
+                offGr = document.createElement('canvas');
+                offGr.width = w; offGr.height = h; 
+                offGrCtx = offGr.getContext('2d', {alpha: false});
+                offGrCtx.fillStyle = '#200';
+                offGrCtx.fillRect(0,0,w,h);
+            }
+        }
+
+        function renderLoop() {
+            animationId = requestAnimationFrame(renderLoop);
+
+            // Resize Handling
+            if (canvasWave.width !== canvasWave.clientWidth || canvasWave.height !== canvasWave.clientHeight) {
+                canvasWave.width = canvasWave.clientWidth;
+                canvasWave.height = canvasWave.clientHeight;
+                canvasGr.width = canvasGr.clientWidth;
+                canvasGr.height = canvasGr.clientHeight;
+                initOffscreen(canvasWave.width, canvasWave.height);
+            }
+            
+            if (!offWaves) initOffscreen(canvasWave.width, canvasWave.height);
+
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            const hGr = canvasGr.height;
+            const speed = 2; 
+
+            const bufferLen = analyserIn.frequencyBinCount;
+            const dataIn = new Uint8Array(bufferLen);
+            const dataOut = new Uint8Array(bufferLen);
+            analyserIn.getByteTimeDomainData(dataIn);
+            analyserOut.getByteTimeDomainData(dataOut);
+
+            let minIn = 255, maxIn = 0;
+            let minOut = 255, maxOut = 0;
+
+            for(let i=0; i<bufferLen; i+=4) { 
+                if(dataIn[i] < minIn) minIn = dataIn[i];
+                if(dataIn[i] > maxIn) maxIn = dataIn[i];
+                if(dataOut[i] < minOut) minOut = dataOut[i];
+                if(dataOut[i] > maxOut) maxOut = dataOut[i];
+            }
+
+            // Normierung der Amplitude auf den Bereich -1.0 bis 1.0
+            let ampMinIn = (minIn - 128) / 128;
+            let ampMaxIn = (maxIn - 128) / 128;
+            let ampMinOut = (minOut - 128) / 128;
+            let ampMaxOut = (maxOut - 128) / 128;
+
+            // --- Didactic Peak Clamp (NEW LOGIC) ---
+            const currentMakeup = parseFloat(params.makeup.value);
+            
+            // Wenn Makeup Gain 0 dB ist, darf der Ausgang den Eingang NICHT überschreiten.
+            if (currentMakeup === 0) {
+                // Clamping der positiven Peak (ampMaxOut muss <= ampMaxIn sein)
+                ampMaxOut = Math.min(ampMaxOut, ampMaxIn);
+                
+                // Clamping des negativen Peak (ampMinOut muss >= ampMinIn sein, da negativer)
+                ampMinOut = Math.max(ampMinOut, ampMinIn);
+            }
+
+
+            // --- WELLENFORM SCROLLING ---
+            offWavesCtx.drawImage(offWaves, -speed, 0);
+            offWavesCtx.fillStyle = '#000';
+            offWavesCtx.fillRect(w - speed, 0, speed, h);
+
+            // Grid Line (Zero Cross)
+            offWavesCtx.strokeStyle = '#222';
+            offWavesCtx.beginPath();
+            offWavesCtx.moveTo(w-speed, h/2); 
+            offWavesCtx.lineTo(w, h/2);
+            offWavesCtx.stroke();
+
+            const yCenter = h/2;
+            const scaleY = h/2 * 0.95; 
+
+            // Input (Grau)
+            offWavesCtx.fillStyle = '#555'; 
+            let hIn = (ampMaxIn - ampMinIn) * scaleY;
+            let yIn = yCenter - (ampMaxIn * scaleY);
+            if(hIn < 1) hIn = 1; 
+            offWavesCtx.fillRect(w - speed, yIn, speed, hIn);
+
+            // Output (Cyan)
+            offWavesCtx.fillStyle = 'rgba(0, 210, 255, 0.8)';
+            let hOut = (ampMaxOut - ampMinOut) * scaleY;
+            let yOut = yCenter - (ampMaxOut * scaleY);
+            if(hOut < 1) hOut = 1;
+            offWavesCtx.fillRect(w - speed, yOut, speed, hOut);
+
+            ctxWave.drawImage(offWaves, 0, 0);
+
+
+            // --- GAIN REDUCTION SCROLLING ---
+            offGrCtx.drawImage(offGr, -speed, 0);
+            offGrCtx.fillStyle = '#1a0505'; 
+            offGrCtx.fillRect(w - speed, 0, speed, hGr);
+
+            let gr = compressor.reduction; 
+            
+            // Threshold Logic Fix (Didactic Clamp)
+            if (parseFloat(params.threshold.value) >= 0) {
+                gr = 0;
+            } else {
+                if (gr > -0.05) gr = 0;
+            }
+
+            // Peak Hold Logic
+            if (gr < peakGR) {
+                peakGR = gr; 
+            }
+            
+            if (peakGR > -0.1) peakGR = 0;
+
+            // Anzeige Update
+            document.getElementById('grValueDisplay').innerText = "Max: " + peakGR.toFixed(1) + " dB";
+
+            const maxDbDisplay = 30;
+            let yGr = (-gr / maxDbDisplay) * hGr;
+            
+            offGrCtx.fillStyle = '#ff4444';
+            offGrCtx.fillRect(w - speed, 0, speed, yGr);
+            
+            offGrCtx.fillStyle = '#ffaaaa';
+            offGrCtx.fillRect(w - speed, yGr, speed, 1);
+
+            ctxGr.drawImage(offGr, 0, 0, w, hGr, 0, 0, w, hGr);
+        }
+
+        // --- Controls ---
+        const btn = document.getElementById('playBtn');
+        btn.addEventListener('click', () => {
+            if(!isPlaying) {
+                initAudio();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                isPlaying = true;
+                btn.classList.add('active');
+                btn.innerText = "■ STOP";
+            } else {
+                clearInterval(loopInterval);
+                cancelAnimationFrame(animationId);
+                audioCtx.close();
+                isPlaying = false;
+                btn.classList.remove('active');
+                btn.innerText = "▶ START AUDIO";
+            }
+        });
+
+    </script>
+</body>
+</html>
