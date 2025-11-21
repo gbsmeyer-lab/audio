@@ -1,0 +1,438 @@
+<div class="max-w-7xl mx-auto bg-gray-900 rounded-xl p-6 shadow-2xl">
+  <h1 class="text-3xl font-extrabold mb-4 text-purple-400">Echtzeit
+    Frequenz-Analysator &amp; Piano</h1>
+  <p class="text-gray-400 mb-6">**Dreieckswelle (sanfte Obertöne):** Spielen Sie
+    die Noten über die Maus oder die Tastatur (Q-W-E-R-T-Z-U-I-O-P-A-S-D-F) und
+    beobachten Sie das Frequenzspektrum. Die Empfindlichkeit wurde erhöht, um
+    **mehr Obertöne** sichtbar zu machen. Die Anzeige ist auf **4000 Hz**
+    begrenzt, und der **Grundton** ist klar in <span
+      class="text-yellow-400 font-bold">Gelb</span> hervorgehoben.</p>
+  <!-- CANVAS FÜR DEN ANALYSATOR --> <canvas id="analyzerCanvas"
+    class="w-full bg-gray-700 rounded-lg shadow-inner mb-6 border-4 border-purple-500"
+    width="800" height="250"></canvas> <!-- PIANO TASTEN -->
+  <div class="flex justify-center mb-6">
+    <div id="piano"
+      class="piano-container bg-gray-800 rounded-b-lg border-t-4 border-gray-700 shadow-xl overflow-hidden">
+      <!-- Tasten werden via JavaScript eingefügt --></div>
+  </div>
+  <!-- START BUTTON (Erforderlich für Audio Context Resume) -->
+  <div class="flex justify-center"><button id="startButton"
+      class="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition duration-150 transform hover:scale-105">
+      Audio Starten </button></div>
+</div>
+<p>
+  <script>
+    (function() {
+      // --- Frequenz-Definitionen für eine Oktave (C4 bis C5) ---
+      const NOTE_FREQUENCIES = {
+        // Weiße Tasten
+        'C4': 261.63,
+        'D4': 293.66,
+        'E4': 329.63,
+        'F4': 349.23,
+        'G4': 392.00,
+        'A4': 440.00,
+        'B4': 493.88,
+        'C5': 523.25,
+        // Schwarze Tasten
+        'Db4': 277.18,
+        'Eb4': 311.13,
+        'Gb4': 369.99,
+        'Ab4': 415.30,
+        'Bb4': 466.16
+      };
+
+      // Tastatur-Mapping (QWERTY Layout)
+      const KEYBOARD_MAPPING = {
+        // Weiße Tasten (untere Reihe)
+        'q': 'C4',
+        'w': 'D4',
+        'e': 'E4',
+        'r': 'F4',
+        't': 'G4',
+        'z': 'A4',
+        'u': 'B4',
+        'i': 'C5',
+        // Schwarze Tasten (obere Reihe)
+        '2': 'Db4',
+        '3': 'Eb4',
+        '5': 'Gb4',
+        '6': 'Ab4',
+        '7': 'Bb4'
+      };
+
+      // --- Audio API Variablen ---
+      let audioCtx = null;
+      let analyser = null;
+      let masterGain = null;
+      // Speichert die aktiven Oszillatoren, um sie bei keyup zu stoppen
+      const activeOscillators = {};
+
+      // --- Canvas Variablen ---
+      const canvas = document.getElementById('analyzerCanvas');
+      const ctx = canvas.getContext('2d');
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      let bufferLength;
+      let dataArray;
+      const ANALYZER_FFT_SIZE = 4096;
+      const ANALYZER_MAX_FREQ = 4000; // Anzeige bis 4000 Hz
+
+      // --- DOM Elemente ---
+      const startButton = document.getElementById('startButton');
+      const pianoContainer = document.getElementById('piano');
+
+      /**
+       * Initialisiert den AudioContext und alle Nodes.
+       */
+      function initializeAudio() {
+        if (audioCtx) {
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => console.log(
+              'Audio Context resumed.'));
+          }
+          return;
+        }
+
+        audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = ANALYZER_FFT_SIZE;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+
+        analyser.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+
+        console.log('Audio Context und Analysator initialisiert.');
+      }
+
+      /**
+       * Startet die Wiedergabe einer bestimmten Note.
+       * @param {string} noteName - Z.B. 'C4'.
+       * @param {HTMLElement} keyElement - Das DOM-Element der Taste.
+       */
+      function startNote(noteName, keyElement) {
+        if (!audioCtx) initializeAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (activeOscillators[noteName]) return;
+
+        const freq = NOTE_FREQUENCIES[noteName];
+        const now = audioCtx.currentTime;
+
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(freq, now);
+
+        const noteGain = audioCtx.createGain();
+        noteGain.gain.setValueAtTime(0.001, now);
+
+        noteGain.gain.linearRampToValueAtTime(0.8, now + 0.05);
+        noteGain.gain.exponentialRampToValueAtTime(0.4, now + 0.5);
+
+        oscillator.connect(noteGain);
+        noteGain.connect(analyser);
+
+        oscillator.start(now);
+
+        activeOscillators[noteName] = {
+          oscillator,
+          noteGain
+        };
+
+        if (keyElement) {
+          keyElement.classList.add('active');
+        }
+      }
+
+      /**
+       * Stoppt die Wiedergabe einer bestimmten Note.
+       * @param {string} noteName - Z.B. 'C4'.
+       * @param {HTMLElement} keyElement - Das DOM-Element der Taste.
+       */
+      function stopNote(noteName, keyElement) {
+        const note = activeOscillators[noteName];
+        if (!note) return;
+
+        const now = audioCtx.currentTime;
+        const releaseTime = 0.5;
+
+        note.noteGain.gain.cancelScheduledValues(now);
+        note.noteGain.gain.exponentialRampToValueAtTime(0.0001, now +
+          releaseTime);
+
+        note.oscillator.stop(now + releaseTime + 0.1);
+
+        delete activeOscillators[noteName];
+
+        if (keyElement) {
+          keyElement.classList.remove('active');
+        }
+      }
+
+      /**
+       * Generiert die Piano Tasten im DOM.
+       */
+      function generatePianoKeys() {
+        const whiteKeyOrder = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4',
+        'C5'];
+        const blackKeyPositions = {
+          'Db4': 'C4',
+          'Eb4': 'D4',
+          'Gb4': 'F4',
+          'Ab4': 'G4',
+          'Bb4': 'A4'
+        };
+
+        let currentOffset = 0;
+
+        whiteKeyOrder.forEach(note => {
+          const keyDiv = document.createElement('div');
+          keyDiv.className = 'white-key';
+          keyDiv.dataset.note = note;
+          keyDiv.textContent = note;
+          keyDiv.style.width = '70px';
+          pianoContainer.appendChild(keyDiv);
+          currentOffset += 70;
+
+          let blackNote = null;
+          for (const blackKey in blackKeyPositions) {
+            if (blackKeyPositions[blackKey] === note) {
+              blackNote = blackKey;
+              break;
+            }
+          }
+
+          if (blackNote) {
+            const blackDiv = document.createElement('div');
+            blackDiv.className = `black-key key-${blackNote}`;
+            blackDiv.dataset.note = blackNote;
+            pianoContainer.appendChild(blackDiv);
+          }
+        });
+      }
+
+      /**
+       * Zeichnet das Frequenzspektrum in den Canvas.
+       */
+      function drawAnalyzer() {
+        if (!analyser || audioCtx.state === 'suspended') {
+          ctx.clearRect(0, 0, WIDTH, HEIGHT);
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(0, 0, WIDTH, HEIGHT);
+          drawGridAndLabels(true);
+          requestAnimationFrame(drawAnalyzer);
+          return;
+        }
+
+        analyser.getByteFrequencyData(dataArray);
+
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        drawGridAndLabels(false);
+
+        const freqResolution = audioCtx.sampleRate / ANALYZER_FFT_SIZE;
+        const maxIndexToDraw = Math.min(bufferLength, Math.floor(
+          ANALYZER_MAX_FREQ / freqResolution));
+        const barWidth = WIDTH / maxIndexToDraw;
+        let x = 0;
+
+        // Finde den Fundamentalton (stärkster Peak unter 600 Hz)
+        let fundamentalBinIndex = -1;
+        let strongestMagnitude = 0;
+        // Suchbereich auf 600 Hz begrenzen (alle Noten in der Oktave C4-C5 liegen darunter)
+        const fundamentalSearchLimit = Math.floor(600 / freqResolution);
+
+        for (let i = 1; i < fundamentalSearchLimit && i <
+          maxIndexToDraw; i++) {
+          if (dataArray[i] > strongestMagnitude) {
+            strongestMagnitude = dataArray[i];
+            fundamentalBinIndex = i;
+          }
+        }
+
+        // Mindest-Schwellwert für eine aktive Note
+        const isFundamentalPlaying = strongestMagnitude > 20;
+
+        // 3. Frequenz-Spektrum zeichnen (Balkendiagramm)
+        for (let i = 0; i < maxIndexToDraw; i++) {
+          let rawMagnitude = dataArray[i];
+
+          // NEU: Verstärke die Magnitude leicht (Faktor 1.3), um schwache Obertöne sichtbarer zu machen, begrenzt auf max 255.
+          let magnitude = Math.min(255, rawMagnitude * 1.3);
+
+          // Skaliere die Hoehe (nutzt 100% der Canvas-Höhe für max Magnitude)
+          let barHeight = (magnitude / 255) * HEIGHT;
+
+          let fillStyle;
+          let strokeStyle = '#a78bfa'; // Helles Lila Standard
+
+          // PRÜFUNG: Ist der aktuelle Bin nahe des erkannten Grundtons?
+          if (isFundamentalPlaying && Math.abs(i - fundamentalBinIndex) <=
+            2 && rawMagnitude > 10) {
+            // LEUCHTENDES GELB für den Grundton
+            fillStyle = '#fde047';
+            strokeStyle = '#fde047'; // Stroke ebenfalls Gelb
+          } else {
+            // Lila/Blau für die Obertöne (Stärke des Tons beeinflusst die Farbe)
+            fillStyle = `rgb(${Math.min(255, magnitude + 80)}, 50, 150)`;
+            strokeStyle = '#a78bfa';
+          }
+
+          ctx.fillStyle = fillStyle;
+          ctx.fillRect(x, HEIGHT - barHeight, barWidth - 1, barHeight);
+
+          // Zeichne die Kontur
+          ctx.strokeStyle = strokeStyle;
+          ctx.strokeRect(x, HEIGHT - barHeight, barWidth - 1, barHeight);
+
+          x += barWidth;
+        }
+
+        requestAnimationFrame(drawAnalyzer);
+      }
+
+      /**
+       * Zeichnet das Gitter und die Frequenzlabels.
+       * @param {boolean} isPaused - Zeigt an, ob das Audio pausiert ist.
+       */
+      function drawGridAndLabels(isPaused) {
+        // Zeichne die X-Achse (Frequenz)
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, HEIGHT);
+        ctx.lineTo(WIDTH, HEIGHT);
+        ctx.stroke();
+
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '10px Inter';
+
+        // Markierungen für 4000 Hz Bereich
+        const freqMarkers = [1000, 2000, 3000, 4000];
+
+        for (const freq of freqMarkers) {
+          const freqResolution = audioCtx ? audioCtx.sampleRate /
+            ANALYZER_FFT_SIZE : 44100 / ANALYZER_FFT_SIZE;
+          // Pixel-Position basierend auf ANALYZER_MAX_FREQ = 4000
+          const xPos = (freq / ANALYZER_MAX_FREQ) * WIDTH;
+
+
+          if (xPos < WIDTH) {
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(xPos, 0);
+            ctx.lineTo(xPos, HEIGHT);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillText(freq + ' Hz', xPos + 5, HEIGHT - 5);
+          }
+        }
+
+        ctx.fillText('Frequenz (Hz)', WIDTH - 80, HEIGHT - 5);
+
+        if (isPaused) {
+          ctx.fillStyle = '#9ca3af';
+          ctx.font = '20px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('AUDIO PAUSIERT - Drücken Sie START', WIDTH / 2,
+            HEIGHT / 2);
+          ctx.textAlign = 'left';
+        }
+      }
+
+
+      // --- Event Handler ---
+
+      // MOUSE EVENTS (Piano Tasten)
+      pianoContainer.addEventListener('mousedown', (e) => {
+        const keyElement = e.target.closest('.white-key, .black-key');
+        if (keyElement) {
+          const note = keyElement.dataset.note;
+          startNote(note, keyElement);
+        }
+      });
+
+      pianoContainer.addEventListener('mouseup', (e) => {
+        const keyElement = e.target.closest('.white-key, .black-key');
+        if (keyElement) {
+          const note = keyElement.dataset.note;
+          stopNote(note, keyElement);
+        }
+      });
+
+      // Für Touch-Geräte
+      pianoContainer.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        for (const touch of e.changedTouches) {
+          const keyElement = document.elementFromPoint(touch.clientX,
+            touch.clientY);
+          if (keyElement && keyElement.closest(
+            '.white-key, .black-key')) {
+            const note = keyElement.dataset.note;
+            startNote(note, keyElement.closest('.white-key, .black-key'));
+          }
+        }
+      }, {
+        passive: false
+      });
+
+      pianoContainer.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        for (const noteName in activeOscillators) {
+          stopNote(noteName, document.querySelector(
+            `[data-note="${noteName}"]`));
+        }
+      }, {
+        passive: false
+      });
+
+
+      // KEYBOARD EVENTS
+      let activeKeys = {};
+
+      document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        const note = KEYBOARD_MAPPING[key];
+
+        if (note && !activeKeys[key]) {
+          e.preventDefault();
+          activeKeys[key] = true;
+          const keyElement = document.querySelector(
+            `[data-note="${note}"]`);
+          startNote(note, keyElement);
+        }
+      });
+
+      document.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        const note = KEYBOARD_MAPPING[key];
+
+        if (note && activeKeys[key]) {
+          e.preventDefault();
+          activeKeys[key] = false;
+          const keyElement = document.querySelector(
+            `[data-note="${note}"]`);
+          stopNote(note, keyElement);
+        }
+      });
+
+      // START BUTTON LISTENER
+      startButton.addEventListener('click', () => {
+        initializeAudio();
+        startButton.classList.add('hidden');
+      });
+
+      // --- Initialisierung ---
+      generatePianoKeys();
+      drawAnalyzer();
+
+    })();
+  </script>
+</p>
