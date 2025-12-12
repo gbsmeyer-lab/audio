@@ -49,45 +49,32 @@
         <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             
             <!-- Tool-Karten-Definitionen mit ECHTEN LINKS -->
-            
-            <!-- 1. Analoges Audiomischpult -->
-            <a href="https://edu-mixer-pro.vercel.app" id="link-analoges-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="analoges Audiomsichpult.png" 
-                     alt="Screenshot Analoges Audiomischpult" 
+
+              <!-- 1. Phasenauslöschung -->
+            <a href="https://phase-cancellation-anc.vercel.app" id="link-phasenauslöschung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="anc.png" 
+                     alt="Screenshot des ANC Simulators" 
                      class="w-full h-48 object-cover object-top"
                      onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
                 <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Analoges Mischpult</h2>
-                    <p class="text-sm text-indigo-200">Simulation: Analoger Mischer mit AUX-Sends & Routing</p>
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Phasenauslöschung</h2>
+                    <p class="text-sm text-indigo-200">Wie Active Noise Cancellation funktioniert.</p>
                 </div>
             </a>
 
-            <!-- 2. Digitales Audiomischpult -->
-            <a href="https://x16-digital-mixer-simultator.vercel.app/" id="link-digitales-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="digitales Audiomischpult.png" 
-                     alt="Screenshot des Digitalen Audiomischpults" 
+             <!-- 2. Kurven gleicher Lautheit -->
+            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" id="link-lautheit" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Kurven_gleicher_Lautheit.png" 
+                     alt="Screenshot der Kurven gleicher Lautheit" 
                      class="w-full h-48 object-cover object-top"
                      onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
                 <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Digitales Mischpult</h2>
-                    <p class="text-sm text-indigo-200">Simulation: Digitaler Mischer mit Encoder, Ebenen & Bussen</p>
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Kurven gleicher Lautheit</h2>
+                    <p class="text-sm text-indigo-200">Experiment: Wie laut wir unterschiedliche Frequenzen hören</p>
                 </div>
             </a>
-            
-            <!-- 3. Vollparametrischer 3-Band-Equalizer -->
-            <!-- Hinweis: eq_v3.html ist ein relativer Link, der so belassen wird. -->
-            <a href="eq_v3.html" id="link-eq" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="3-Band-Equalizer mit Rauschen.png" 
-                     alt="Screenshot 3-Band-Equalizer mit Rauschen" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vollparametrischer Equalizer</h2>
-                    <p class="text-sm text-indigo-200">3-Band-EQ mit Rauschen ausprobieren</p>
-                </div>
-            </a>
-            
-            <!-- 4. ADSR Hüllkurve -->
+
+             <!-- 3. ADSR Hüllkurve -->
             <a href="https://adsr-demo-synth.vercel.app/" id="link-adsr" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
                 <img src="ADSR Huellkurve.png" 
                      alt="Screenshot der ADSR Hüllkurve" 
@@ -99,32 +86,31 @@
                 </div>
             </a>
 
-            <!-- 5. Audio Kompressor -->
-            <a href="https://audio-compressor-simulator.vercel.app/" id="link-compressor" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Audioompressor.png" 
-                     alt="Screenshot des Audio Compressors" 
+               <!-- 4. Schallausbreitung -->
+            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" id="link-schallausbreitung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="schallausbreitung.png" 
+                     alt="Screenshot des Schallausbreitung Simulators" 
                      class="w-full h-48 object-cover object-top"
                      onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
                 <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Audio Kompressor</h2>
-                    <p class="text-sm text-indigo-200">Wie Dynamikbearbeitung aussieht und klingt</p>
-                </div>
-            </a>
-            
-            <!-- 6. Vintage Band-Echo (Tape Delay) -->
-            <!-- Hinweis: tape_delay.html ist ein relativer Link, der so belassen wird. -->
-            <a href="https://roland-space-echo-simulation.vercel.app" id="link-tape-delay" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="tape_delay2.png" 
-                     alt="Screenshot des Vintage Band-Echo Simulators" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vintage Tape Delay</h2>
-                    <p class="text-sm text-indigo-200">Simulation: legendäres Band-Echo</p>
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schallausbreitung</h2>
+                    <p class="text-sm text-indigo-200">Wenn Schallwellen auf Hindernisse treffen...</p>
                 </div>
             </a>
 
-            <!-- 7. Vergleich Richtcharakteristika -->
+                <!-- 5. Schalllokalisation -->
+            <a href="https://binaural-hearing-visualizer.vercel.app" id="link-schalllokalisation" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="schalllokalisation.png" 
+                     alt="Screenshot des Schalllokalisation Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schalllokalisation</h2>
+                    <p class="text-sm text-indigo-200">Wie wir Schall orten können</p>
+                </div>
+            </a>
+
+             <!-- 6. Vergleich Richtcharakteristika -->
             <!-- Hinweis: richtcharakteristika.html ist ein relativer Link, der so belassen wird. -->
             <a href="richtcharakteristika.html" id="link-richtcharakteristik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
                 <img src="Vergleich Richtcharakteristika.png" 
@@ -134,6 +120,18 @@
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Richtcharakteristika</h2>
                     <p class="text-sm text-indigo-200">Interaktiver Vergleich von Mikrofon-Charakteristiken</p>
+                </div>
+            </a>
+
+            <!-- 7. Analoges Audiomischpult -->
+            <a href="https://edu-mixer-pro.vercel.app" id="link-analoges-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="analoges Audiomsichpult.png" 
+                     alt="Screenshot Analoges Audiomischpult" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Analoges Mischpult</h2>
+                    <p class="text-sm text-indigo-200">Simulation: Analoger Mischer mit AUX-Sends & Routing</p>
                 </div>
             </a>
 
@@ -150,19 +148,57 @@
                 </div>
             </a>
             
-            <!-- 9. Kurven gleicher Lautheit -->
-            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" id="link-lautheit" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Kurven_gleicher_Lautheit.png" 
-                     alt="Screenshot der Kurven gleicher Lautheit" 
+            <!-- 9. Digitales Audiomischpult -->
+            <a href="https://x16-digital-mixer-simultator.vercel.app/" id="link-digitales-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="digitales Audiomischpult.png" 
+                     alt="Screenshot des Digitalen Audiomischpults" 
                      class="w-full h-48 object-cover object-top"
                      onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
                 <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Kurven gleicher Lautheit</h2>
-                    <p class="text-sm text-indigo-200">Experiment: Wie laut wir unterschiedliche Frequenzen hören</p>
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Digitales Mischpult</h2>
+                    <p class="text-sm text-indigo-200">Simulation: Digitaler Mischer mit Encoder, Ebenen & Bussen</p>
                 </div>
             </a>
             
-            <!-- 10. Belichtungsdreieck Simulator (Video/Kamera) -->
+            <!-- 10. Vollparametrischer 3-Band-Equalizer -->
+            <!-- Hinweis: eq_v3.html ist ein relativer Link, der so belassen wird. -->
+            <a href="eq_v3.html" id="link-eq" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="3-Band-Equalizer mit Rauschen.png" 
+                     alt="Screenshot 3-Band-Equalizer mit Rauschen" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vollparametrischer Equalizer</h2>
+                    <p class="text-sm text-indigo-200">3-Band-EQ mit Rauschen ausprobieren</p>
+                </div>
+            </a>
+
+            <!-- 11. Audio Kompressor -->
+            <a href="https://audio-compressor-simulator.vercel.app/" id="link-compressor" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Audioompressor.png" 
+                     alt="Screenshot des Audio Compressors" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Audio Kompressor</h2>
+                    <p class="text-sm text-indigo-200">Wie Dynamikbearbeitung aussieht und klingt</p>
+                </div>
+            </a>
+            
+            <!-- 12. Vintage Band-Echo (Tape Delay) -->
+            <!-- Hinweis: tape_delay.html ist ein relativer Link, der so belassen wird. -->
+            <a href="https://roland-space-echo-simulation.vercel.app" id="link-tape-delay" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="tape_delay2.png" 
+                     alt="Screenshot des Vintage Band-Echo Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vintage Tape Delay</h2>
+                    <p class="text-sm text-indigo-200">Simulation: legendäres Band-Echo</p>
+                </div>
+            </a>
+            
+            <!-- 13. Belichtungsdreieck Simulator (Video/Kamera) -->
             <a href="https://video-beta-beryl.vercel.app" id="link-belichtungsdreieck" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
                 <img src="Belichtungsdreieck.png" 
                      alt="Screenshot des Belichtungsdreieck Simulators" 
@@ -174,42 +210,6 @@
                 </div>
             </a>
 
-            <!-- 11. Phasenauslöschung -->
-            <a href="https://phase-cancellation-anc.vercel.app" id="link-phasenauslöschung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="anc.png" 
-                     alt="Screenshot des ANC Simulators" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Phasenauslöschung</h2>
-                    <p class="text-sm text-indigo-200">Wie Active Noise Cancellation funktioniert.</p>
-                </div>
-            </a>
-
-             <!-- 12. Schallausbreitung -->
-            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" id="link-schallausbreitung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schallausbreitung.png" 
-                     alt="Screenshot des Schallausbreitung Simulators" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schallausbreitung</h2>
-                    <p class="text-sm text-indigo-200">Wenn Schallwellen auf Hindernisse treffen...</p>
-                </div>
-            </a>
-
-               <!-- 13. Schalllokalisation -->
-            <a href="https://binaural-hearing-visualizer.vercel.app" id="link-schalllokalisation" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schalllokalisation.png" 
-                     alt="Screenshot des Schalllokalisation Simulators" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schalllokalisation</h2>
-                    <p class="text-sm text-indigo-200">Wie wir Schall orten können</p>
-                </div>
-            </a>
-            
         </main>
     </div>
 
