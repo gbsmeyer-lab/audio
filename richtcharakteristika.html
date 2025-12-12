@@ -53,18 +53,15 @@
             <div id="canvas-container" class="lg:w-1/2 w-full mx-auto relative shadow-2xl rounded-2xl p-2 bg-gray-800">
                 <canvas id="polarDiagramCanvas" class="diagram-focus" width="500" height="500"></canvas>
                 
-                <!-- Dämpfungsanzeige-Box (Dark Mode) -->
-                <div id="attenuationDisplay" class="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-gray-100 text-sm font-semibold border border-gray-700">
-                    <p class="text-xs text-gray-400 mb-1">Dämpfung (Attenuation):</p>
-                    <p class="text-xl font-bold" id="attenuationValue">0.00 dB</p>
-                    <p class="text-xs text-gray-400 mt-1"><span id="angleValue">0</span>° Winkel</p>
+                <!-- Dämpfungsanzeige-Box (Dark Mode) - Stark VERKLEINERT -->
+                <div id="attenuationDisplay" class="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2 shadow-lg text-gray-100 text-sm font-semibold border border-gray-700">
+                    <p class="text-xs text-gray-400 mb-0">Dämpfung:</p>
+                    <p class="text-lg font-bold" id="attenuationValue">0.00 dB</p>
                 </div>
 
-                <!-- Audio Control Button -->
+                <!-- Audio Control Button (Symbol entfernt) -->
                 <div class="absolute bottom-4 left-4">
-                    <button id="audioToggleButton" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full transition-colors shadow-lg flex items-center" onclick="toggleAudio()">
-                        <!-- Einfaches Lautsprecher-Icon (Standard: aus) -->
-                        <svg id="speakerIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a.8.8 0 011.602 0v7.072a.8.8 0 01-1.602 0V8.464zM10.742 1.488a.8.8 0 011.39 0L19.5 12l-7.368 10.512a.8.8 0 01-1.39 0L2.5 12l7.5-10.512z"></path></svg>
+                    <button id="audioToggleButton" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full transition-colors shadow-lg" onclick="toggleAudio()">
                         <span id="audioButtonText">Audio Starten</span>
                     </button>
                 </div>
@@ -221,7 +218,7 @@
 
             const button = document.getElementById('audioToggleButton');
             const buttonText = document.getElementById('audioButtonText');
-            // Das Icon wird durch CSS ersetzt, daher keine direkte Manipulation hier.
+            // Das Icon wurde entfernt, daher keine direkte Manipulation des Icons hier.
 
             if (isPlaying) {
                 // Stoppen
@@ -432,12 +429,14 @@
 
 
             // 5. Update der Dämpfungsanzeige
-            const angleDeg = (angleRad * 180 / Math.PI) % 360;
+            // Die Berechnung des Winkels angleDeg wird beibehalten, da sie für andere Zwecke nützlich sein könnte, 
+            // aber die Anzeige im HTML wird entfernt.
+            const angleDeg = (angleRad * 180 / Math.PI) % 360; 
             const sensitivity = getRelativeSensitivity(angleRad, currentPattern);
             const attenuation = calculateAttenuation(sensitivity);
             
             document.getElementById('attenuationValue').textContent = `${attenuation.toFixed(2)} dB`;
-            document.getElementById('angleValue').textContent = `${angleDeg.toFixed(0)}`;
+            // document.getElementById('angleValue').textContent wird entfernt.
             
             // 6. Audio-Update
             if (isAudioInitialized) {
