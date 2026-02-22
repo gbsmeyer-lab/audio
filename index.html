@@ -1,339 +1,296 @@
 <!DOCTYPE html>
-<html lang="de" class="scroll-smooth">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interaktive Lern-Tools für Mediengestaltung Bild & Ton</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN für schnelles, modernes Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1WZ3057VP5"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-1WZ3057VP5');
-    </script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Custom Styles und Font-Definition */
         body {
             font-family: 'Inter', sans-serif;
-            /* Ein subtiles Muster für mehr Tiefe */
-            background-image: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            transition: background-color 0.3s ease;
         }
-        
-        /* Einblend-Animation für die Filter-Funktion */
-        @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+        /* Dunkler Hintergrund für den modernen Look */
+        .bg-dark-primary {
+            background-color: #1a1a2e; /* Dunkles Violett/Blau */
         }
-        .animate-fade-in {
-            animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .text-light-primary {
+            color: #e9e9f2;
         }
-
-        /* Verstecke Scrollbar für die Filterleiste auf Mobile */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+        .tool-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            background-color: #2c2c54; /* Etwas hellere Karte */
+            border: 1px solid #3c3c6f;
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        .tool-card:hover {
+            transform: translateY(-5px);
+            /* Akzentfarbe basierend auf der gelben/grünen Farbe in Ihren Screenshots */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(234, 179, 8, 0.7); 
         }
     </style>
 </head>
-
-<body class="bg-slate-900 text-slate-200 min-h-screen relative overflow-x-hidden antialiased selection:bg-indigo-500 selection:text-white">
     
-    <!-- Dekorative Hintergrund-Leuchteffekte (Blobs) -->
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-    <div class="absolute top-[20%] right-[-10%] w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1WZ3057VP5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-    <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative z-10">
-        
+  gtag('config', 'G-1WZ3057VP5');
+</script>
+    
+<body class="bg-dark-primary text-light-primary min-h-screen">
+    <div class="container mx-auto p-4 sm:p-8">
         <!-- Header Sektion -->
-        <header class="text-center mb-16">
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-yellow-400">Lern-Tools</span>
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-extrabold text-white mb-2">
+                Interaktive Lern-Tools
             </h1>
-            <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto">
-                Interaktive Simulationen für die Mediengestaltung Bild & Ton. 
+            <p class="text-xl text-indigo-300">
+                für Mediengestaltung Bild & Ton
             </p>
         </header>
 
-        <!-- Filter Navigation -->
-        <nav class="flex justify-start sm:justify-center gap-2 mb-10 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-            <button class="filter-btn active whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-indigo-600 text-white border border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)]" data-filter="all">Alle Tools</button>
-            <button class="filter-btn whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white" data-filter="akustik">Akustik</button>
-            <button class="filter-btn whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white" data-filter="audio">Tontechnik</button>
-            <button class="filter-btn whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white" data-filter="video">Bildtechnik</button>
-        </nav>
-
         <!-- Tools Grid Sektion -->
-        <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8" id="tools-grid">
+        <!-- Der Grid-Layout passt sich automatisch an: 1 Spalte auf Mobile, 2 auf Medium, 3 auf Large -->
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             
-            <!-- Tool 1: Phasenauslöschung (Akustik) -->
-            <a href="https://phase-cancellation-anc.vercel.app" data-category="akustik" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-indigo-300 border border-slate-700">Akustik</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/anc.png" alt="ANC Simulator" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Phasenauslöschung</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Wie funktioniert Active Noise Cancelling?</p>
+            <!-- Tool-Karten-Definitionen mit ECHTEN LINKS -->
+
+              <!-- 1. Phasenauslöschung -->
+            <a href="https://phase-cancellation-anc.vercel.app" id="link-phasenauslöschung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="anc.png" 
+                     alt="Screenshot des ANC Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Phasenauslöschung</h2>
+                    <p class="text-sm text-indigo-200">Wie funktioniert Active Noise Cancelling?</p>
                 </div>
             </a>
 
-            <!-- Tool 2: Kurven gleicher Lautheit (Akustik) -->
-            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" data-category="akustik" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-indigo-300 border border-slate-700">Akustik</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/Kurven_gleicher_Lautheit.png" alt="Kurven gleicher Lautheit" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Kurven gleicher Lautheit</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Hören wir alle Frequenzen gleich laut?</p>
-                </div>
-            </a>
-
-            <!-- Tool 3: Grundton (Akustik) -->
-            <a href="https://grundton-obertoene.vercel.app" data-category="akustik" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-indigo-300 border border-slate-700">Akustik</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/Grundton.png" alt="Grundton" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Grundton & Obertöne</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Wie beeinflussen sie die Klangfarbe?</p>
+             <!-- 2. Kurven gleicher Lautheit -->
+            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" id="link-lautheit" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Kurven_gleicher_Lautheit.png" 
+                     alt="Screenshot der Kurven gleicher Lautheit" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Kurven gleicher Lautheit</h2>
+                    <p class="text-sm text-indigo-200">Hören wir alle Frequenzen gleich laut?</p>
                 </div>
             </a>
 
-            <!-- Tool 4: ADSR Hüllkurve (Audio) -->
-            <a href="https://adsr-demo-synth.vercel.app/" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/ADSR%20Huellkurve.png" alt="ADSR Hüllkurve" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">ADSR Hüllkurve</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Schallverlauf? Probier es am Synthesizer aus!</p>
-                </div>
-            </a>
-
-            <!-- Tool 5: Schallausbreitung (Akustik) -->
-            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" data-category="akustik" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-indigo-300 border border-slate-700">Akustik</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/schallausbreitung.png" alt="Schallausbreitung" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Schallausbreitung</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Wann wird eine Schallwelle gebeugt und wann reflektiert?</p>
+             <!-- 3. Grundton -->
+            <a href="https://grundton-obertoene.vercel.app" id="link-grundton" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Grundton.png" 
+                     alt="Screenshot Grundton" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Grundton & Obertöne</h2>
+                    <p class="text-sm text-indigo-200">Wie beeinflussen sie die Klangfarbe?</p>
                 </div>
             </a>
 
-            <!-- Tool 6: Schalllokalisation (Akustik) -->
-            <a href="https://binaural-hearing-visualizer.vercel.app" data-category="akustik" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-indigo-300 border border-slate-700">Akustik</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/schalllokalisation.png" alt="Schalllokalisation" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Schalllokalisation</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Warum wir Schall aus allen Richtungen orten können</p>
-                </div>
-            </a>
-
-            <!-- Tool 7: Richtcharakteristika (Audio) -->
-            <a href="https://3-d-microphone-polar-pattern.vercel.app" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/rc1.png" alt="Richtcharakteristika" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Richtcharakteristik</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Wie gut empfangen Mikrofone Schall aus verschiedenen Richtungen?</p>
+             <!-- 4. ADSR Hüllkurve -->
+            <a href="https://adsr-demo-synth.vercel.app/" id="link-adsr" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="ADSR Huellkurve.png" 
+                     alt="Screenshot der ADSR Hüllkurve" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">ADSR Hüllkurve</h2>
+                    <p class="text-sm text-indigo-200">Schallverlauf? Probier es am Synthesizer aus!</p>
                 </div>
             </a>
 
-            <!-- Tool 8: Mic Check (Audio) -->
-            <a href="https://miccheck-alpha.vercel.app/" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/miccheck.png" alt="Mic Check" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Mic Check</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Frequenzgang und Rauschverhalten von Mikrofontypen vergleichen</p>
-                </div>
-            </a>
-
-            <!-- Tool 9: Analoges Mischpult (Audio) -->
-            <a href="https://edu-mixer-pro.vercel.app" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/analoges%20Audiomsichpult.png" alt="Analoges Audiomischpult" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Analoges Mischpult</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">AUX-Sends, Routing, PFL & Signalflussdiagramm ausprobieren!</p>
+               <!-- 5. Schallausbreitung -->
+            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" id="link-schallausbreitung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="schallausbreitung.png" 
+                     alt="Screenshot des Schallausbreitung Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schallausbreitung</h2>
+                    <p class="text-sm text-indigo-200">Wann wird eine Schallwelle gebeugt und wann reflektiert?</p>
                 </div>
             </a>
 
-            <!-- Tool 10: A/D-Wandler (Audio) -->
-            <a href="a-d-wandler.html" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/AD-Wandler.png" alt="A/D Wandler Simulator" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">A/D-Wandlung</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Sampling und Quantisierung von Audio bei der Wandlung von analog zu digital</p>
-                </div>
-            </a>
-
-            <!-- Tool 11: Digitales Mischpult (Audio) -->
-            <a href="https://x16-digital-mixer-simultator.vercel.app/" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/digitales%20Audiomischpult.png" alt="Digitales Audiomischpult" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Digitales Mischpult</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Encoder, Ebenen, EQ & Busse ausprobieren!</p>
+                <!-- 6. Schalllokalisation -->
+            <a href="https://binaural-hearing-visualizer.vercel.app" id="link-schalllokalisation" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="schalllokalisation.png" 
+                     alt="Screenshot des Schalllokalisation Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schalllokalisation</h2>
+                    <p class="text-sm text-indigo-200">Warum wir Schall aus allen Richtungen orten können</p>
                 </div>
             </a>
 
-            <!-- Tool 12: Bildmischer (Video) -->
-            <a href="https://bimisim.vercel.app" data-category="video" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-purple-400 border border-slate-700">Video</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/bimisim.png" alt="Bildmischer" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Bildmischer</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Transitions, Keys & DVE direkt ausprobieren, auch mit eigenen Quellen</p>
-                </div>
-            </a>
-
-            <!-- Tool 13: Audio Kompressor (Audio) -->
-            <a href="https://audio-compressor-simulator.vercel.app/" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/Audioompressor.png" alt="Audio Kompressor" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Audio Kompressor</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Dynamikbearbeitung von Audiomaterial ausprobieren</p>
+             <!-- 7. Vergleich Richtcharakteristika -->
+            <!-- Hinweis: richtcharakteristika.html ist ein relativer Link, der so belassen wird. -->
+            <a href="https://3-d-microphone-polar-pattern.vercel.app" id="link-richtcharakteristik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="rc1.png" 
+                     alt="Screenshot Vergleich Richtcharakteristika" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Richtcharakteristik</h2>
+                    <p class="text-sm text-indigo-200">Wie gut empfangen Mikrofone Schall aus verschiedenen Richtungen?</p>
                 </div>
             </a>
 
-            <!-- Tool 14: Vintage Tape Delay (Audio) -->
-            <a href="https://roland-space-echo-simulation.vercel.app" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/tape_delay2.png" alt="Vintage Band-Echo" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Vintage Tape Delay</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Ein legendäres Band-Echo direkt testen</p>
-                </div>
-            </a>
-
-            <!-- Tool 15: Parametrischer EQ (Audio) -->
-            <a href="https://eqv2-nine.vercel.app/" data-category="audio" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-emerald-400 border border-slate-700">Audio</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/eqv2.png" alt="3-Band-Equalizer" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Parametrischer EQ</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Drums & Rauschen mit einem 3-Band-Equalizer manipulieren</p>
+             <!-- 8. Mic Check -->
+            <!-- Hinweis: richtcharakteristika.html ist ein relativer Link, der so belassen wird. -->
+            <a href="https://miccheck-alpha.vercel.app/" id="link-miccheck" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="miccheck.png" 
+                     alt="Screenshot Mic Check" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Mic Check</h2>
+                    <p class="text-sm text-indigo-200">Frequenzgang und Rauschverhalten von Mikrofontypen vergleichen</p>
                 </div>
             </a>
 
-            <!-- Tool 16: Belichtungsdreieck (Video) -->
-            <a href="https://video-beta-beryl.vercel.app" data-category="video" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-purple-400 border border-slate-700">Kamera</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/Belichtungsdreieck.png" alt="Belichtungsdreieck Simulator" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Belichtungsdreieck</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Zusammenhang von Blende, Shutter, ISO (und ND-Filtern) verstehen</p>
-                </div>
-            </a>
-
-            <!-- Tool 17: WhiteBalanceSim (Video) -->
-            <a href="https://white-balance-sim.vercel.app" data-category="video" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-purple-400 border border-slate-700">Kamera</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/wb.png" alt="WhiteBalanceSimulator" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
-                </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Weißabgleich</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Wie hängen die Lichtfarbtemperatur und der Kameraweißabgleich zusammen?</p>
+            <!-- 9. Analoges Audiomischpult -->
+            <a href="https://edu-mixer-pro.vercel.app" id="link-analoges-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="analoges Audiomsichpult.png" 
+                     alt="Screenshot Analoges Audiomischpult" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Analoges Mischpult</h2>
+                    <p class="text-sm text-indigo-200">AUX-Sends, Routing, PFL & Signalflussdiagramm ausprobieren!</p>
                 </div>
             </a>
 
-            <!-- Tool 18: Backfocus (Video) -->
-            <a href="https://backfocus.vercel.app" data-category="video" class="tool-card group relative flex flex-col bg-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div class="relative aspect-video overflow-hidden">
-                    <span class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur text-xs px-2.5 py-1 rounded-md text-purple-400 border border-slate-700">Kamera</span>
-                    <img src="https://gbsmeyer-lab.github.io/audio/backfocus.png" alt="Auflagemaß Simulator" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/600x338/1e293b/94a3b8?text=Bild+fehlt'">
+            <!-- 10. AD-Wandler Simulator -->
+            <!-- Hinweis: a-d-wandler.html ist ein relativer Link, der so belassen wird. -->
+            <a href="a-d-wandler.html" id="link-ad-wandler" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="AD-Wandler.png" 
+                     alt="Screenshot des A/D Wandler Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">A/D-Wandlung</h2>
+                    <p class="text-sm text-indigo-200">Sampling und Quantisierung von Audio bei der Wandlung von analog zu digital</p>
                 </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h2 class="text-xl font-bold text-slate-100 mb-2 group-hover:text-yellow-400 transition-colors">Auflagemaß</h2>
-                    <p class="text-sm text-slate-400 line-clamp-2">Knackscharf über den gesamten Zoombereich? Nur mit korrektem Auflagemaß.</p>
+            </a>
+            
+            <!-- 11. Digitales Audiomischpult -->
+            <a href="https://x16-digital-mixer-simultator.vercel.app/" id="link-digitales-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="digitales Audiomischpult.png" 
+                     alt="Screenshot des Digitalen Audiomischpults" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Digitales Mischpult</h2>
+                    <p class="text-sm text-indigo-200">Encoder, Ebenen, EQ & Busse ausprobieren!</p>
+                </div>
+            </a>
+            
+            <!-- 12. Bildmischer -->
+            <a href="https://bimisim.vercel.app" id="link-bimisim" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="bimisim.png" 
+                     alt="Screenshot bimisim" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Bildmischer</h2>
+                    <p class="text-sm text-indigo-200">Transitions, Keys & DVE direkt ausprobieren, auch mit eigenen Quellen</p>
+                </div>
+            </a>
+
+            <!-- 13. Audio Kompressor -->
+            <a href="https://audio-compressor-simulator.vercel.app/" id="link-compressor" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Audioompressor.png" 
+                     alt="Screenshot des Audio Compressors" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Audio Kompressor</h2>
+                    <p class="text-sm text-indigo-200">Dynamikbearbeitung von Audiomaterial ausprobieren</p>
+                </div>
+            </a>
+            
+            <!-- 14. Vintage Band-Echo (Tape Delay) -->
+            <!-- Hinweis: tape_delay.html ist ein relativer Link, der so belassen wird. -->
+            <a href="https://roland-space-echo-simulation.vercel.app" id="link-tape-delay" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="tape_delay2.png" 
+                     alt="Screenshot des Vintage Band-Echo Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vintage Tape Delay</h2>
+                    <p class="text-sm text-indigo-200">Ein legendäres Band-Echo direkt testen</p>
+                </div>
+            </a>
+            
+
+            <!-- 15. Vollparametrischer 3-Band-Equalizer -->
+            <!-- Hinweis: eq_v3.html ist ein relativer Link, der so belassen wird. -->
+            <a href="https://eqv2-nine.vercel.app/" id="link-eq" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="eqv2.png" 
+                     alt="Screenshot 3-Band-Equalizer mit Drums und Rauschen" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Parametrischer EQ</h2>
+                    <p class="text-sm text-indigo-200">Drums & Rauschen mit einem 3-Band-Eqalizer manipulieren</p>
+                </div>
+            </a>
+            
+            
+            <!-- 16. Belichtungsdreieck Simulator (Video/Kamera) -->
+            <a href="https://video-beta-beryl.vercel.app" id="link-belichtungsdreieck" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="Belichtungsdreieck.png" 
+                     alt="Screenshot des Belichtungsdreieck Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Belichtungsdreieck</h2>
+                    <p class="text-sm text-indigo-200">Zusammenhang von Blende, Shutter, ISO (und ND-Filtern) verstehen</p>
+                </div>
+            </a>
+
+            <!-- 17. WhiteBalanceSim) -->
+            <a href="https://white-balance-sim.vercel.app" id="link-WhiteBalanceSim" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="wb.png" 
+                     alt="Screenshot des WhiteBalanceSimulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">WhiteBalanceSim</h2>
+                    <p class="text-sm text-indigo-200">Wie hängen die Lichtfarbtemperatur und der Kameraweißabgleich zusammen?</p>
+                </div>
+            </a>
+
+
+             <!-- 18. Backfocus) -->
+            <a href="https://backfocus.vercel.app" id="link-Backfocus" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="backfocus.png" 
+                     alt="Screenshot des Auflagemaß-Simulators" 
+                     class="w-full h-48 object-cover object-top"
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                <div class="p-5">
+                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Auflagemaß</h2>
+                    <p class="text-sm text-indigo-200">Knackscharf über den gesamten Zoombereich? Nur mit korrektem Auflagemaß.</p>
                 </div>
             </a>
 
         </main>
     </div>
 
-    <!-- Footer -->
-    <footer class="relative z-10 text-center p-8 mt-12 text-sm text-slate-500 border-t border-slate-800/60 bg-slate-900/50 backdrop-blur-md">
-        <p>© André Meyer | Gutenbergschule Leipzig</p>
+    <footer class="text-center p-6 mt-12 text-sm text-indigo-400 border-t border-indigo-900/50">
+        <p>&copy; André Meyer | Gutenbergschule Leipzig</p>
     </footer>
-
-    <!-- Script für die Filter-Logik -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const filterBtns = document.querySelectorAll('.filter-btn');
-            const cards = document.querySelectorAll('.tool-card');
-
-            filterBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // Entferne aktiven Status von allen Buttons
-                    filterBtns.forEach(b => {
-                        b.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500', 'shadow-[0_0_15px_rgba(79,70,229,0.4)]');
-                        b.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
-                    });
-                    
-                    // Setze aktiven Status für den geklickten Button
-                    btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
-                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500', 'shadow-[0_0_15px_rgba(79,70,229,0.4)]');
-
-                    const filterValue = btn.getAttribute('data-filter');
-
-                    cards.forEach(card => {
-                        // Animation zurücksetzen
-                        card.classList.remove('animate-fade-in');
-                        
-                        // Kleiner Hack, um die Animation neu zu triggern
-                        void card.offsetWidth; 
-
-                        if (filterValue === 'all' || card.getAttribute('data-category') === filterValue) {
-                            card.style.display = 'flex';
-                            card.classList.add('animate-fade-in');
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-                });
-            });
-        });
-    </script>
+    
 </body>
 </html>
