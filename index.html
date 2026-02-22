@@ -21,7 +21,7 @@
             color: #e9e9f2;
         }
         .tool-card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s ease;
             background-color: #2c2c54; /* Etwas hellere Karte */
             border: 1px solid #3c3c6f;
         }
@@ -29,6 +29,11 @@
             transform: translateY(-5px);
             /* Akzentfarbe basierend auf der gelben/grünen Farbe in Ihren Screenshots */
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(234, 179, 8, 0.7); 
+        }
+        /* Filter Button Active State */
+        .filter-btn.active {
+            background-color: #eab308; /* yellow-500 */
+            color: #1a1a2e;
         }
     </style>
 </head>
@@ -46,7 +51,7 @@
 <body class="bg-dark-primary text-light-primary min-h-screen">
     <div class="container mx-auto p-4 sm:p-8">
         <!-- Header Sektion -->
-        <header class="text-center mb-12">
+        <header class="text-center mb-8">
             <h1 class="text-5xl font-extrabold text-white mb-2">
                 Interaktive Lern-Tools
             </h1>
@@ -55,18 +60,23 @@
             </p>
         </header>
 
-        <!-- Tools Grid Sektion -->
-        <!-- Der Grid-Layout passt sich automatisch an: 1 Spalte auf Mobile, 2 auf Medium, 3 auf Large -->
-        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            
-            <!-- Tool-Karten-Definitionen mit ECHTEN LINKS -->
+        <!-- Filter Sektion -->
+        <nav class="flex flex-wrap justify-center gap-2 mb-12">
+            <button onclick="filterTools('all')" class="filter-btn active px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="all">alle Tools</button>
+            <button onclick="filterTools('akustik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="akustik">Akustik</button>
+            <button onclick="filterTools('tontechnik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="tontechnik">Tontechnik</button>
+            <button onclick="filterTools('bildtechnik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="bildtechnik">Bildtechnik</button>
+        </nav>
 
-              <!-- 1. Phasenauslöschung -->
-            <a href="https://phase-cancellation-anc.vercel.app" id="link-phasenauslöschung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="anc.png" 
-                     alt="Screenshot des ANC Simulators" 
+        <!-- Tools Grid Sektion -->
+        <main id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            
+            <!-- 1. Phasenauslöschung -->
+            <a href="https://phase-cancellation-anc.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/anc.png" 
+                     alt="Phasenauslöschung" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=anc.png+nicht+gefunden'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Phasenauslöschung</h2>
                     <p class="text-sm text-indigo-200">Wie funktioniert Active Noise Cancelling?</p>
@@ -74,11 +84,11 @@
             </a>
 
              <!-- 2. Kurven gleicher Lautheit -->
-            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" id="link-lautheit" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Kurven_gleicher_Lautheit.png" 
-                     alt="Screenshot der Kurven gleicher Lautheit" 
+            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/Kurven_gleicher_Lautheit.png" 
+                     alt="Kurven gleicher Lautheit" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+nicht+gefunden'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Kurven gleicher Lautheit</h2>
                     <p class="text-sm text-indigo-200">Hören wir alle Frequenzen gleich laut?</p>
@@ -86,11 +96,11 @@
             </a>
 
              <!-- 3. Grundton -->
-            <a href="https://grundton-obertoene.vercel.app" id="link-grundton" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Grundton.png" 
-                     alt="Screenshot Grundton" 
+            <a href="https://grundton-obertoene.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/Grundton.png" 
+                     alt="Grundton" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Grundton.png+nicht+gefunden'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Grundton & Obertöne</h2>
                     <p class="text-sm text-indigo-200">Wie beeinflussen sie die Klangfarbe?</p>
@@ -98,11 +108,11 @@
             </a>
 
              <!-- 4. ADSR Hüllkurve -->
-            <a href="https://adsr-demo-synth.vercel.app/" id="link-adsr" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="ADSR Huellkurve.png" 
-                     alt="Screenshot der ADSR Hüllkurve" 
+            <a href="https://adsr-demo-synth.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/ADSR%20Huellkurve.png" 
+                     alt="ADSR Hüllkurve" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=ADSR+Huellkurve.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">ADSR Hüllkurve</h2>
                     <p class="text-sm text-indigo-200">Schallverlauf? Probier es am Synthesizer aus!</p>
@@ -110,11 +120,11 @@
             </a>
 
                <!-- 5. Schallausbreitung -->
-            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" id="link-schallausbreitung" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schallausbreitung.png" 
-                     alt="Screenshot des Schallausbreitung Simulators" 
+            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/schallausbreitung.png" 
+                     alt="Schallausbreitung" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=schallausbreitung.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schallausbreitung</h2>
                     <p class="text-sm text-indigo-200">Wann wird eine Schallwelle gebeugt und wann reflektiert?</p>
@@ -122,11 +132,11 @@
             </a>
 
                 <!-- 6. Schalllokalisation -->
-            <a href="https://binaural-hearing-visualizer.vercel.app" id="link-schalllokalisation" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schalllokalisation.png" 
-                     alt="Screenshot des Schalllokalisation Simulators" 
+            <a href="https://binaural-hearing-visualizer.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/schalllokalisation.png" 
+                     alt="Schalllokalisation" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=schalllokalisation.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schalllokalisation</h2>
                     <p class="text-sm text-indigo-200">Warum wir Schall aus allen Richtungen orten können</p>
@@ -134,12 +144,11 @@
             </a>
 
              <!-- 7. Vergleich Richtcharakteristika -->
-            <!-- Hinweis: richtcharakteristika.html ist ein relativer Link, der so belassen wird. -->
-            <a href="https://3-d-microphone-polar-pattern.vercel.app" id="link-richtcharakteristik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="rc1.png" 
-                     alt="Screenshot Vergleich Richtcharakteristika" 
+            <a href="https://3-d-microphone-polar-pattern.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/rc1.png" 
+                     alt="Richtcharakteristik" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=rc1.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Richtcharakteristik</h2>
                     <p class="text-sm text-indigo-200">Wie gut empfangen Mikrofone Schall aus verschiedenen Richtungen?</p>
@@ -147,12 +156,11 @@
             </a>
 
              <!-- 8. Mic Check -->
-            <!-- Hinweis: richtcharakteristika.html ist ein relativer Link, der so belassen wird. -->
-            <a href="https://miccheck-alpha.vercel.app/" id="link-miccheck" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="miccheck.png" 
-                     alt="Screenshot Mic Check" 
+            <a href="https://miccheck-alpha.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/miccheck.png" 
+                     alt="Mic Check" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=miccheck.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Mic Check</h2>
                     <p class="text-sm text-indigo-200">Frequenzgang und Rauschverhalten von Mikrofontypen vergleichen</p>
@@ -160,11 +168,11 @@
             </a>
 
             <!-- 9. Analoges Audiomischpult -->
-            <a href="https://edu-mixer-pro.vercel.app" id="link-analoges-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="analoges Audiomsichpult.png" 
-                     alt="Screenshot Analoges Audiomischpult" 
+            <a href="https://edu-mixer-pro.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/analoges%20Audiomsichpult.png" 
+                     alt="Analoges Mischpult" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=mischpult+bild+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Analoges Mischpult</h2>
                     <p class="text-sm text-indigo-200">AUX-Sends, Routing, PFL & Signalflussdiagramm ausprobieren!</p>
@@ -172,12 +180,11 @@
             </a>
 
             <!-- 10. AD-Wandler Simulator -->
-            <!-- Hinweis: a-d-wandler.html ist ein relativer Link, der so belassen wird. -->
-            <a href="a-d-wandler.html" id="link-ad-wandler" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="AD-Wandler.png" 
-                     alt="Screenshot des A/D Wandler Simulators" 
+            <a href="a-d-wandler.html" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/AD-Wandler.png" 
+                     alt="A/D-Wandler" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=AD-Wandler.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">A/D-Wandlung</h2>
                     <p class="text-sm text-indigo-200">Sampling und Quantisierung von Audio bei der Wandlung von analog zu digital</p>
@@ -185,11 +192,11 @@
             </a>
             
             <!-- 11. Digitales Audiomischpult -->
-            <a href="https://x16-digital-mixer-simultator.vercel.app/" id="link-digitales-mischpult" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="digitales Audiomischpult.png" 
-                     alt="Screenshot des Digitalen Audiomischpults" 
+            <a href="https://x16-digital-mixer-simultator.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/digitales%20Audiomischpult.png" 
+                     alt="Digitales Mischpult" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bild+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Digitales Mischpult</h2>
                     <p class="text-sm text-indigo-200">Encoder, Ebenen, EQ & Busse ausprobieren!</p>
@@ -197,11 +204,11 @@
             </a>
             
             <!-- 12. Bildmischer -->
-            <a href="https://bimisim.vercel.app" id="link-bimisim" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="bimisim.png" 
-                     alt="Screenshot bimisim" 
+            <a href="https://bimisim.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/bimisim.png" 
+                     alt="Bildmischer" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bimisim.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Bildmischer</h2>
                     <p class="text-sm text-indigo-200">Transitions, Keys & DVE direkt ausprobieren, auch mit eigenen Quellen</p>
@@ -209,11 +216,11 @@
             </a>
 
             <!-- 13. Audio Kompressor -->
-            <a href="https://audio-compressor-simulator.vercel.app/" id="link-compressor" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Audioompressor.png" 
-                     alt="Screenshot des Audio Compressors" 
+            <a href="https://audio-compressor-simulator.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/Audioompressor.png" 
+                     alt="Audio Kompressor" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Audioompressor.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Audio Kompressor</h2>
                     <p class="text-sm text-indigo-200">Dynamikbearbeitung von Audiomaterial ausprobieren</p>
@@ -221,12 +228,11 @@
             </a>
             
             <!-- 14. Vintage Band-Echo (Tape Delay) -->
-            <!-- Hinweis: tape_delay.html ist ein relativer Link, der so belassen wird. -->
-            <a href="https://roland-space-echo-simulation.vercel.app" id="link-tape-delay" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="tape_delay2.png" 
-                     alt="Screenshot des Vintage Band-Echo Simulators" 
+            <a href="https://roland-space-echo-simulation.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/tape_delay2.png" 
+                     alt="Tape Delay" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=tape_delay2.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vintage Tape Delay</h2>
                     <p class="text-sm text-indigo-200">Ein legendäres Band-Echo direkt testen</p>
@@ -235,12 +241,11 @@
             
 
             <!-- 15. Vollparametrischer 3-Band-Equalizer -->
-            <!-- Hinweis: eq_v3.html ist ein relativer Link, der so belassen wird. -->
-            <a href="https://eqv2-nine.vercel.app/" id="link-eq" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="eqv2.png" 
-                     alt="Screenshot 3-Band-Equalizer mit Drums und Rauschen" 
+            <a href="https://eqv2-nine.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/eqv2.png" 
+                     alt="Equalizer" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=eqv2.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Parametrischer EQ</h2>
                     <p class="text-sm text-indigo-200">Drums & Rauschen mit einem 3-Band-Eqalizer manipulieren</p>
@@ -249,11 +254,11 @@
             
             
             <!-- 16. Belichtungsdreieck Simulator (Video/Kamera) -->
-            <a href="https://video-beta-beryl.vercel.app" id="link-belichtungsdreieck" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Belichtungsdreieck.png" 
-                     alt="Screenshot des Belichtungsdreieck Simulators" 
+            <a href="https://video-beta-beryl.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/Belichtungsdreieck.png" 
+                     alt="Belichtungsdreieck" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Belichtungsdreieck.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Belichtungsdreieck</h2>
                     <p class="text-sm text-indigo-200">Zusammenhang von Blende, Shutter, ISO (und ND-Filtern) verstehen</p>
@@ -261,11 +266,11 @@
             </a>
 
             <!-- 17. WhiteBalanceSim) -->
-            <a href="https://white-balance-sim.vercel.app" id="link-WhiteBalanceSim" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="wb.png" 
-                     alt="Screenshot des WhiteBalanceSimulators" 
+            <a href="https://white-balance-sim.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/wb.png" 
+                     alt="White Balance" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=wb.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">WhiteBalanceSim</h2>
                     <p class="text-sm text-indigo-200">Wie hängen die Lichtfarbtemperatur und der Kameraweißabgleich zusammen?</p>
@@ -274,11 +279,11 @@
 
 
              <!-- 18. Backfocus) -->
-            <a href="https://backfocus.vercel.app" id="link-Backfocus" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="backfocus.png" 
-                     alt="Screenshot des Auflagemaß-Simulators" 
+            <a href="https://backfocus.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
+                <img src="https://gbsmeyer-lab.github.io/audio/backfocus.png" 
+                     alt="Backfocus" 
                      class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+Fehler'">
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=backfocus.png+fehlt'">
                 <div class="p-5">
                     <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Auflagemaß</h2>
                     <p class="text-sm text-indigo-200">Knackscharf über den gesamten Zoombereich? Nur mit korrektem Auflagemaß.</p>
@@ -291,6 +296,34 @@
     <footer class="text-center p-6 mt-12 text-sm text-indigo-400 border-t border-indigo-900/50">
         <p>&copy; André Meyer | Gutenbergschule Leipzig</p>
     </footer>
+
+    <script>
+        function filterTools(category) {
+            const cards = document.querySelectorAll('.tool-card');
+            const buttons = document.querySelectorAll('.filter-btn');
+
+            // Update button styles
+            buttons.forEach(btn => {
+                if (btn.getAttribute('data-filter') === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Filter cards
+            cards.forEach(card => {
+                const cardCategory = card.getAttribute('data-category');
+                if (category === 'all' || cardCategory === category) {
+                    card.style.display = 'block';
+                    setTimeout(() => { card.style.opacity = '1'; }, 10);
+                } else {
+                    card.style.opacity = '0';
+                    setTimeout(() => { card.style.display = 'none'; }, 300);
+                }
+            });
+        }
+    </script>
     
 </body>
 </html>
