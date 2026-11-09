@@ -1,418 +1,380 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktive Lern-Tools für Mediengestaltung Bild & Ton</title>
-    <!-- Tailwind CSS CDN für schnelles, modernes Styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Custom Styles und Font-Definition */
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease;
-        }
-        /* Dunkler Hintergrund für den modernen Look */
-        .bg-dark-primary {
-            background-color: #1a1a2e; /* Dunkles Violett/Blau */
-        }
-        .text-light-primary {
-            color: #e9e9f2;
-        }
-        .tool-card {
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s ease;
-            background-color: #2c2c54; /* Etwas hellere Karte */
-            border: 1px solid #3c3c6f;
-        }
-        .tool-card:hover {
-            transform: translateY(-5px);
-            /* Akzentfarbe basierend auf der gelben/grünen Farbe in Ihren Screenshots */
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(234, 179, 8, 0.7); 
-        }
-        /* Filter Button Active State */
-        .filter-btn.active {
-            background-color: #eab308; /* yellow-500 */
-            color: #1a1a2e;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interaktive Lern-Tools · Mediengestaltung Bild &amp; Ton</title>
+  <meta name="description" content="Interaktive Simulationen zu Akustik, Tontechnik und Bildtechnik für den Ausbildungsgang Mediengestalter Bild und Ton.">
+
+  <!-- GoatCounter: datenschutzfreundliche Statistik ohne Cookies.
+       Code: gbsmeyer -->
+  <script data-goatcounter="https://gbsmeyer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+  <style>
+    /* Schriften lokal eingebunden (SIL Open Font License, siehe fonts/) */
+    @font-face { font-family: "Inter"; src: url("fonts/inter-latin-var.woff") format("woff"); font-weight: 400 700; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Space Grotesk"; src: url("fonts/spacegrotesk-latin-var.woff") format("woff"); font-weight: 600 700; font-style: normal; font-display: swap; }
+    :root {
+      --bg: #0E0E18;
+      --surface: #1A1A2C;
+      --surface-2: #1B1B2E;
+      --line: #2C2C46;
+      --line-2: #3A3A60;
+      --text: #ECECF4;
+      --muted: #B4B4CF;
+      --dim: #8E8EAE;
+      --accent: #FACC15;
+      --accent-hi: #FDE68A;
+      --ak: #5EEAD4;
+      --ton: #FACC15;
+      --bild: #93C5FD;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hi); }
+    img { display: block; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    /* Kopfzeile */
+    .site-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-top: 28px; padding-bottom: 20px; }
+    .brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    .brand strong { font-family: "Space Grotesk", sans-serif; font-size: 26px; color: #fff; }
+    .brand span, .site-head .meta { font-size: 14px; color: var(--muted); }
+
+    /* Bühne */
+    .stage-section { padding-bottom: 36px; display: flex; flex-direction: column; gap: 16px; }
+    .stage { display: flex; flex-wrap: wrap; border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+    .stage-info { flex: 1 1 320px; display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: 36px 32px; }
+    .stage-info .kicker { font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    .stage-info h1 { margin: 10px 0 12px; font-family: "Space Grotesk", sans-serif; font-size: clamp(32px, 4vw, 44px); line-height: 1.05; color: #fff; }
+    .stage-info p { margin: 0 0 10px; font-size: 17px; line-height: 1.5; color: #C9C9DE; }
+    .stage-info .topic { font-size: 14px; color: var(--dim); }
+    .stage-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .btn-start {
+      display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 28px; border-radius: 999px;
+      background: var(--accent); color: var(--bg); font-weight: 700; font-size: 16px; text-decoration: none;
+    }
+    .btn-start:hover { background: var(--accent-hi); color: var(--bg); }
+    .btn-round {
+      width: 52px; height: 52px; border-radius: 50%; background: transparent; border: 1px solid var(--line-2);
+      color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-round:hover { border-color: var(--accent); }
+    .stage-media { flex: 3 1 620px; position: relative; display: block; min-height: 480px; background: #000; overflow: hidden; }
+    .stage-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .35s ease, transform .6s ease; }
+    .stage-media:hover img { transform: scale(1.03); }
+    .stage-media.is-loading img { opacity: .2; }
+    .thumbs { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+    .thumb {
+      flex: 0 0 132px; height: 82px; padding: 0; border-radius: 10px; overflow: hidden; cursor: pointer; background: #000;
+      border: 2px solid var(--line); opacity: .6; transition: transform .15s ease, opacity .15s ease, border-color .15s ease;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb:hover { transform: translateY(-3px); opacity: 1; }
+    .thumb[aria-pressed="true"] { border-color: var(--accent); opacity: 1; }
+
+    /* Filterleiste */
+    .filterbar { position: sticky; top: 0; z-index: 10; background: rgba(14,14,24,.95); backdrop-filter: blur(6px); border-top: 1px solid #26263D; border-bottom: 1px solid #26263D; }
+    .filterbar .wrap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-top: 14px; padding-bottom: 14px; }
+    .chip {
+      min-height: 44px; padding: 0 18px; border-radius: 999px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+      background: transparent; color: var(--text); border: 1px solid var(--line-2);
+    }
+    .chip:hover { border-color: var(--accent); }
+    .chip[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .chip .n { opacity: .7; font-weight: 500; margin-left: 4px; }
+    .spacer { flex: 1 1 auto; }
+    .search {
+      display: flex; align-items: center; gap: 10px; flex: 0 1 340px; min-width: 220px; height: 44px; padding: 0 14px;
+      border-radius: 10px; background: var(--surface-2); border: 1px solid #34345A;
+    }
+    .search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: #fff; font: inherit; font-size: 15px; }
+    .search input::placeholder { color: var(--dim); }
+    .search:focus-within { border-color: var(--accent); }
+
+    /* Raster */
+    main { padding-top: 40px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 56px; }
+    .group { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 90px; }
+    .group-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    .group-head .area { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .group-head h2 { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 28px; font-weight: 600; color: #fff; }
+    .group-head .count { font-size: 14px; color: var(--dim); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; }
+    .card {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 18px 40px rgba(0,0,0,.55), 0 0 0 1px var(--accent); color: inherit; }
+    .card-media { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #000; }
+    .card-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; }
+    .card:hover .card-media img { transform: scale(1.07); }
+    .tag {
+      position: absolute; left: 12px; top: 12px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: 5px 10px; border-radius: 999px; background: rgba(10,10,18,.85); color: #fff;
+    }
+    .go {
+      position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px;
+      border-radius: 999px; background: var(--accent); color: var(--bg); font-size: 14px; font-weight: 700;
+      opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease;
+    }
+    .card:hover .go, .card:focus-visible .go { opacity: 1; transform: none; }
+    @media (hover: none) { .go { opacity: 1; transform: none; } }
+    .card-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .card-body h3 { margin: 0; font-size: 18px; font-weight: 600; color: #fff; }
+    .card-body p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+    .empty { margin: 0; padding: 48px; text-align: center; border: 1px dashed #34345A; border-radius: var(--radius); color: var(--muted); }
+
+    footer { border-top: 1px solid #26263D; padding: 28px 32px; text-align: center; font-size: 14px; color: var(--dim); }
+
+    @media (max-width: 720px) {
+      .wrap { padding-left: 18px; padding-right: 18px; }
+      .stage-info { padding: 26px 22px; }
+      .stage-media { min-height: 240px; flex-basis: 100%; order: -1; }
+      .filterbar { position: static; }
+      .search { flex: 1 1 100%; }
+      .spacer { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
 </head>
-    
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1WZ3057VP5"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+<body>
 
-  gtag('config', 'G-1WZ3057VP5');
-</script>
-    
-<body class="bg-dark-primary text-light-primary min-h-screen">
-    <div class="container mx-auto p-4 sm:p-8">
-        <!-- Header Sektion -->
-        <header class="text-center mb-8">
-            <h1 class="text-5xl font-extrabold text-white mb-2">
-                Interaktive Lern-Tools
-            </h1>
-            <p class="text-xl text-indigo-300">
-                für Mediengestaltung Bild & Ton
-            </p>
-        </header>
-
-        <!-- Filter Sektion -->
-        <nav class="flex flex-wrap justify-center gap-2 mb-12">
-            <button onclick="filterTools('all')" class="filter-btn active px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="all">alle Tools</button>
-            <button onclick="filterTools('akustik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="akustik">Akustik</button>
-            <button onclick="filterTools('tontechnik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="tontechnik">Tontechnik</button>
-            <button onclick="filterTools('bildtechnik')" class="filter-btn px-6 py-2 rounded-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-dark-primary transition-all font-semibold" data-filter="bildtechnik">Bildtechnik</button>
-        </nav>
-
-        <!-- Tools Grid Sektion -->
-        <main id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            
-            <!-- 1. Phasenauslöschung -->
-            <a href="https://phase-cancellation-anc.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="anc.png" 
-                     alt="Phasenauslöschung" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=anc.png+nicht+gefunden'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Phasenauslöschung</h2>
-                    <p class="text-sm text-indigo-200">Wie funktioniert Active Noise Cancelling?</p>
-                </div>
-            </a>
-
-             <!-- 2. Kurven gleicher Lautheit -->
-            <a href="https://fletcher-munson-curves-experiment-h.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Kurven_gleicher_Lautheit.png" 
-                     alt="Kurven gleicher Lautheit" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Bild+nicht+gefunden'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Kurven gleicher Lautheit</h2>
-                    <p class="text-sm text-indigo-200">Hören wir alle Frequenzen gleich laut?</p>
-                </div>
-            </a>
-
-             <!-- 3. Grundton -->
-            <a href="https://grundton-obertoene.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Grundton.png" 
-                     alt="Grundton" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Grundton.png+nicht+gefunden'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Grundton & Obertöne</h2>
-                    <p class="text-sm text-indigo-200">Wie beeinflussen sie die Klangfarbe?</p>
-                </div>
-            </a>
-
-             <!-- 4. ADSR Hüllkurve -->
-            <a href="https://adsr-demo-synth.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="ADSR%20Huellkurve.png" 
-                     alt="ADSR Hüllkurve" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=ADSR+Huellkurve.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">ADSR Hüllkurve</h2>
-                    <p class="text-sm text-indigo-200">Schallverlauf? Probier es am Synthesizer aus!</p>
-                </div>
-            </a>
-
-               <!-- 5. Schallausbreitung -->
-            <a href="https://sound-reflexion-and-diffraction-sim-nine.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schallausbreitung.png" 
-                     alt="Schallausbreitung" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=schallausbreitung.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schallausbreitung</h2>
-                    <p class="text-sm text-indigo-200">Wann wird eine Schallwelle gebeugt und wann reflektiert?</p>
-                </div>
-            </a>
-
-                <!-- 6. Schalllokalisation -->
-            <a href="https://binaural-hearing-visualizer.vercel.app" data-category="akustik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="schalllokalisation.png" 
-                     alt="Schalllokalisation" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=schalllokalisation.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Schalllokalisation</h2>
-                    <p class="text-sm text-indigo-200">Warum wir Schall aus allen Richtungen orten können</p>
-                </div>
-            </a>
-
-             <!-- 7. Vergleich Richtcharakteristika -->
-            <a href="https://3-d-microphone-polar-pattern.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="rc1.png" 
-                     alt="Richtcharakteristik" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=rc1.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Richtcharakteristik</h2>
-                    <p class="text-sm text-indigo-200">Wie gut empfangen Mikrofone Schall aus verschiedenen Richtungen?</p>
-                </div>
-            </a>
-
-             <!-- 8. Mic Check -->
-            <a href="https://miccheck-alpha.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="miccheck.png" 
-                     alt="Mic Check" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=miccheck.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Mic Check</h2>
-                    <p class="text-sm text-indigo-200">Frequenzgang und Rauschverhalten von Mikrofontypen vergleichen</p>
-                </div>
-            </a>
-
-             <!-- 9. Mixer Funktionsgruppen -->
-            <a href="https://mixer-funktionsgruppen.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="funktionsgruppen.png" 
-                     alt="Mixer Funktionsgruppen" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=funktionsgruppen.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Mixer Funktionsgruppen</h2>
-                    <p class="text-sm text-indigo-200">Überblick über die Funktionsgruppen von analogen Audiomischpulten</p>
-                </div>
-            </a>
-
-            <!-- 10. Analoges Audiomischpult -->
-            <a href="https://edu-mixer-pro.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="analoges%20Audiomsichpult.png" 
-                     alt="Analoges Mischpult" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=mischpult+bild+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Analoges Mischpult</h2>
-                    <p class="text-sm text-indigo-200">AUX-Sends, Routing, PFL & Signalflussdiagramm ausprobieren!</p>
-                </div>
-            </a>
-
-            <!-- 11. AD-Wandler Simulator -->
-            <a href="a-d-wandler.html" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="AD-Wandler.png" 
-                     alt="A/D-Wandler" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=AD-Wandler.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">A/D-Wandlung</h2>
-                    <p class="text-sm text-indigo-200">Sampling und Quantisierung von Audio bei der Wandlung von analog zu digital</p>
-                </div>
-            </a>
-            
-            <!-- 12. Digitales Audiomischpult -->
-            <a href="https://x32v2.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="digitales%20Audiomischpult.png" 
-                     alt="Digitales Mischpult" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bild+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Digitales Mischpult</h2>
-                    <p class="text-sm text-indigo-200">Kreiert euren eigenen Mix am digitalen Mischpult!</p>
-                </div>
-            </a>
-
-              <!-- 13. Mixpre3+Sync -->
-            <a href="https://mixpre3.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="mixpre3.png" 
-                     alt="Mixpre3+Sync" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bild+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">MixPre3+Timecode</h2>
-                    <p class="text-sm text-indigo-200">Mobilen Recorder & Kamera mit Tentacles syncen</p>
-                </div>
-            </a>
-
-
-              <!-- 14. Pocket6kPro -->
-            <a href="https://pocket6kpro.vercel.app/#back" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="pocket6kpro.png" 
-                     alt="Pocket6kPro" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bild+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Pocket6kPro</h2>
-                    <p class="text-sm text-indigo-200">Die Kamerabedienung und Menüs ausprobieren</p>
-                </div>
-            </a>
-
-               <!-- 15. ZV-E1 -->
-            <a href="https://zv-e1.vercel.app/#back" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="zv-e1.png" 
-                     alt="ZV-E1" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bild+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Sony ZV-E1</h2>
-                    <p class="text-sm text-indigo-200">Die Kamerabedienung und Menüs ausprobieren</p>
-                </div>
-            </a>
-
-            
-            <!-- 16. Bildmischer -->
-            <a href="https://bimisim.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="bimisim.png" 
-                     alt="Bildmischer" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bimisim.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Bildmischer</h2>
-                    <p class="text-sm text-indigo-200">Transitions, Keys & DVE direkt ausprobieren, auch mit eigenen Quellen</p>
-                </div>
-            </a>
-
-             <!-- 17. Simheiser -->
-            <a href="https://simheiser.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="simheiser.png" 
-                     alt="Simheiser" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=bimisim.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Funkstrecken Simulator</h2>
-                    <p class="text-sm text-indigo-200">Das Einrichten einer Sennheiser G4 Funkstrecke verstehen</p>
-                </div>
-            </a>
-
-            <!-- 18. Audio Kompressor -->
-            <a href="https://audio-compressor-simulator.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Audioompressor.png" 
-                     alt="Audio Kompressor" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Audioompressor.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Audio Kompressor</h2>
-                    <p class="text-sm text-indigo-200">Dynamikbearbeitung von Audiomaterial ausprobieren</p>
-                </div>
-            </a>
-
-
-            <!-- 19. Reverb Playground -->
-            <a href="https://reverb-playground.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="reverb.png" 
-                     alt="Reverb Playground" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Audioompressor.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Reverb Playground</h2>
-                    <p class="text-sm text-indigo-200">Reverb direkt ausprobieren</p>
-                </div>
-            </a>
-            
-            
-            <!-- 20. Vintage Band-Echo (Tape Delay) -->
-            <a href="https://spaceecho.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="tape_delay3.png" 
-                     alt="Tape Delay" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=tape_delay2.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Vintage Tape Delay</h2>
-                    <p class="text-sm text-indigo-200">Ein legendäres Band-Echo direkt testen</p>
-                </div>
-            </a>
-            
-
-            <!-- 21. Vollparametrischer 3-Band-Equalizer -->
-            <a href="https://eqv2-nine.vercel.app/" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="eqv2.png" 
-                     alt="Equalizer" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=eqv2.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Parametrischer EQ</h2>
-                    <p class="text-sm text-indigo-200">Drums & Rauschen mit einem 3-Band-Eqalizer manipulieren</p>
-                </div>
-            </a>
-
-
-             <!-- 22. Scary Audio Device -->
-            <a href="https://void-machine.vercel.app" data-category="tontechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="sad.png" 
-                     alt="ScaryAudioDevice" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=eqv2.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">S.A.D.</h2>
-                    <p class="text-sm text-indigo-200">Kreire scary Soundscapes mit diesem Spielzeug</p>
-                </div>
-            </a>
-            
-            
-            <!-- 23. Belichtungsdreieck Simulator (Video/Kamera) -->
-            <a href="https://video-beta-beryl.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="Belichtungsdreieck.png" 
-                     alt="Belichtungsdreieck" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=Belichtungsdreieck.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Belichtungsdreieck</h2>
-                    <p class="text-sm text-indigo-200">Zusammenhang von Blende, Shutter, ISO (und ND-Filtern) verstehen</p>
-                </div>
-            </a>
-
-            <!-- 24. WhiteBalanceSim) -->
-            <a href="https://white-balance-sim.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="wb.png" 
-                     alt="White Balance" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=wb.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">WhiteBalanceSim</h2>
-                    <p class="text-sm text-indigo-200">Wie hängen die Lichtfarbtemperatur und der Kameraweißabgleich zusammen?</p>
-                </div>
-            </a>
-
-
-             <!-- 25. Backfocus) -->
-            <a href="https://backfocus.vercel.app" data-category="bildtechnik" class="tool-card block rounded-xl overflow-hidden shadow-lg hover:shadow-2xl cursor-pointer">
-                <img src="backfocus.png" 
-                     alt="Backfocus" 
-                     class="w-full h-48 object-cover object-top"
-                     onerror="this.onerror=null; this.src='https://placehold.co/600x300/3c3c6f/ffffff?text=backfocus.png+fehlt'">
-                <div class="p-5">
-                    <h2 class="text-2xl font-semibold text-yellow-300 mb-1">Auflagemaß</h2>
-                    <p class="text-sm text-indigo-200">Knackscharf über den gesamten Zoombereich? Nur mit korrektem Auflagemaß.</p>
-                </div>
-            </a>
-
-        </main>
+  <header class="wrap site-head">
+    <div class="brand">
+      <strong>Lern-Tools</strong>
+      <span>Mediengestaltung Bild &amp; Ton</span>
     </div>
+    <span class="meta" id="total-meta"></span>
+  </header>
 
-    <footer class="text-center p-6 mt-12 text-sm text-indigo-400 border-t border-indigo-900/50">
-        <p>&copy; André Meyer | Gutenbergschule Leipzig</p>
-    </footer>
+  <section class="wrap stage-section" aria-label="Gerätesimulationen">
+    <div class="stage">
+      <div class="stage-info">
+        <div>
+          <span class="kicker" id="stage-pos">Gerätesimulation</span>
+          <h1 id="stage-title"></h1>
+          <p id="stage-desc"></p>
+          <span class="topic" id="stage-topic"></span>
+        </div>
+        <div class="stage-actions">
+          <a class="btn-start" id="stage-start" href="#">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Start
+          </a>
+          <button class="btn-round" id="stage-prev" type="button" aria-label="Vorheriges Gerät">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button class="btn-round" id="stage-next" type="button" aria-label="Nächstes Gerät">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <a class="stage-media" id="stage-media" href="#">
+        <img id="stage-img" src="" alt="">
+      </a>
+    </div>
+    <div class="thumbs" id="thumbs" role="group" aria-label="Gerät auswählen"></div>
+  </section>
 
-    <script>
-        function filterTools(category) {
-            const cards = document.querySelectorAll('.tool-card');
-            const buttons = document.querySelectorAll('.filter-btn');
+  <nav class="filterbar" aria-label="Bereiche filtern">
+    <div class="wrap">
+      <div id="chips" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+      <span class="spacer"></span>
+      <label class="search">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B4B4CF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <span class="sr-only">Tools durchsuchen</span>
+        <input type="search" id="search" placeholder="Tool suchen …" autocomplete="off">
+      </label>
+    </div>
+  </nav>
 
-            // Update button styles
-            buttons.forEach(btn => {
-                if (btn.getAttribute('data-filter') === category) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
+  <main class="wrap" id="groups"></main>
 
-            // Filter cards
-            cards.forEach(card => {
-                const cardCategory = card.getAttribute('data-category');
-                if (category === 'all' || cardCategory === category) {
-                    card.style.display = 'block';
-                    setTimeout(() => { card.style.opacity = '1'; }, 10);
-                } else {
-                    card.style.opacity = '0';
-                    setTimeout(() => { card.style.display = 'none'; }, 300);
-                }
-            });
-        }
-    </script>
-    
+  <footer>&copy; André Meyer · <a href="datenschutz.html">Datenschutz</a></footer>
+
+  <script>
+    /* =========================================================
+       DATEN – neue Tools einfach hier ergänzen.
+       g     = Themengruppe (siehe GROUPS)
+       k     = 'Gerät' oder 'Konzept'
+       img   = Dateiname in img/ und img/thumb/
+       pos   = Bildausschnitt (object-position), z. B. 'center' oder 'top'
+       id    = eindeutiger Name für die Klick-Statistik (GoatCounter)
+       ========================================================= */
+    const TOOLS = [
+      { id: 'phasenausloeschung', t: 'Phasenauslöschung', d: 'Wie funktioniert Active Noise Cancelling?', g: 'schall', k: 'Konzept', u: 'https://phase-cancellation-anc.vercel.app', img: 'anc', pos: 'top' },
+      { id: 'kurven-gleicher-lautheit', t: 'Kurven gleicher Lautheit', d: 'Hören wir alle Frequenzen gleich laut?', g: 'schall', k: 'Konzept', u: 'https://fletcher-munson-curves-experiment-h.vercel.app', img: 'lautheit', pos: 'top' },
+      { id: 'grundton-obertoene', t: 'Grundton & Obertöne', d: 'Wie beeinflussen sie die Klangfarbe?', g: 'schall', k: 'Konzept', u: 'https://grundton-obertoene.vercel.app', img: 'grundton', pos: 'top' },
+      { id: 'schallausbreitung', t: 'Schallausbreitung', d: 'Wann wird eine Schallwelle gebeugt und wann reflektiert?', g: 'schall', k: 'Konzept', u: 'https://sound-reflexion-and-diffraction-sim-nine.vercel.app', img: 'ausbreitung', pos: 'center' },
+      { id: 'schalllokalisation', t: 'Schalllokalisation', d: 'Warum wir Schall aus allen Richtungen orten können', g: 'schall', k: 'Konzept', u: 'https://binaural-hearing-visualizer.vercel.app', img: 'lokalisation', pos: 'top' },
+      { id: 'ad-wandlung', t: 'A/D-Wandlung', d: 'Sampling und Quantisierung bei der Wandlung von analog zu digital', g: 'schall', k: 'Konzept', u: 'a-d-wandler.html', img: 'adwandler', pos: 'top' },
+
+      { id: 'richtcharakteristik', t: 'Richtcharakteristik', d: 'Wie gut empfangen Mikrofone Schall aus verschiedenen Richtungen?', g: 'mic', k: 'Konzept', u: 'https://3-d-microphone-polar-pattern.vercel.app', img: 'rc', pos: 'center' },
+      { id: 'mic-check', t: 'Mic Check', d: 'Frequenzgang und Rauschverhalten von Mikrofontypen vergleichen', g: 'mic', k: 'Konzept', u: 'https://miccheck-alpha.vercel.app/', img: 'miccheck', pos: 'center' },
+      { id: 'funkstrecke', t: 'Funkstrecken-Simulator', d: 'Das Einrichten einer Sennheiser G4 Funkstrecke verstehen', g: 'mic', k: 'Gerät', u: 'https://simheiser.vercel.app', img: 'simheiser', pos: 'center' },
+
+      { id: 'mixer-funktionsgruppen', t: 'Mixer-Funktionsgruppen', d: 'Überblick über die Funktionsgruppen analoger Audiomischpulte', g: 'mix', k: 'Konzept', u: 'https://mixer-funktionsgruppen.vercel.app/', img: 'funktionsgruppen', pos: 'top' },
+      { id: 'analoges-mischpult', t: 'Analoges Mischpult', d: 'AUX-Sends, Routing, PFL & Signalflussdiagramm ausprobieren', g: 'mix', k: 'Gerät', u: 'https://edu-mixer-pro.vercel.app', img: 'analog', pos: 'top' },
+      { id: 'digitales-mischpult', t: 'Digitales Mischpult', d: 'Kreiert euren eigenen Mix am digitalen Mischpult', g: 'mix', k: 'Gerät', u: 'https://x32v2.vercel.app/', img: 'digital', pos: 'center' },
+      { id: 'mixpre3-timecode', t: 'MixPre-3 + Timecode', d: 'Mobilen Recorder & Kamera mit Tentacles syncen', g: 'mix', k: 'Gerät', u: 'https://mixpre3.vercel.app/', img: 'mixpre', pos: 'center' },
+
+      { id: 'tape-delay', t: 'Vintage Tape Delay', d: 'Ein legendäres Band-Echo direkt testen', g: 'fx', k: 'Gerät', u: 'https://spaceecho.vercel.app/', img: 'tape', pos: 'center' },
+      { id: 'adsr', t: 'ADSR-Hüllkurve', d: 'Schallverlauf? Probier es am Synthesizer aus', g: 'fx', k: 'Konzept', u: 'https://adsr-demo-synth.vercel.app/', img: 'adsr', pos: 'top' },
+      { id: 'parametrischer-eq', t: 'Parametrischer EQ', d: 'Drums & Rauschen mit einem 3-Band-Equalizer manipulieren', g: 'fx', k: 'Konzept', u: 'https://eqv2-nine.vercel.app/', img: 'eq', pos: 'top' },
+      { id: 'kompressor', t: 'Audio-Kompressor', d: 'Dynamikbearbeitung von Audiomaterial ausprobieren', g: 'fx', k: 'Konzept', u: 'https://audio-compressor-simulator.vercel.app/', img: 'kompressor', pos: 'center' },
+      { id: 'reverb', t: 'Reverb Playground', d: 'Reverb direkt ausprobieren', g: 'fx', k: 'Konzept', u: 'https://reverb-playground.vercel.app/', img: 'reverb', pos: 'center' },
+      { id: 'sad', t: 'S.A.D.', d: 'Kreiere scary Soundscapes mit diesem Spielzeug', g: 'fx', k: 'Gerät', u: 'https://void-machine.vercel.app', img: 'sad', pos: 'center' },
+
+      { id: 'pocket-6k-pro', t: 'Pocket 6K Pro', d: 'Die Kamerabedienung und Menüs ausprobieren', g: 'cam', k: 'Gerät', u: 'https://pocket6kpro.vercel.app/#back', img: 'pocket', pos: 'center' },
+      { id: 'sony-zv-e1', t: 'Sony ZV-E1', d: 'Die Kamerabedienung und Menüs ausprobieren', g: 'cam', k: 'Gerät', u: 'https://zv-e1.vercel.app/#back', img: 'zve1', pos: 'center' },
+      { id: 'bildmischer', t: 'Bildmischer', d: 'Transitions, Keys & DVE ausprobieren, auch mit eigenen Quellen', g: 'cam', k: 'Gerät', u: 'https://bimisim.vercel.app', img: 'bimisim', pos: 'center' },
+      { id: 'auflagemass', t: 'Auflagemaß', d: 'Knackscharf über den gesamten Zoombereich? Nur mit korrektem Auflagemaß.', g: 'cam', k: 'Konzept', u: 'https://backfocus.vercel.app', img: 'backfocus', pos: 'left center' },
+      { id: 'belichtungsdreieck', t: 'Belichtungsdreieck', d: 'Zusammenhang von Blende, Shutter, ISO (und ND-Filtern) verstehen', g: 'cam', k: 'Konzept', u: 'https://video-beta-beryl.vercel.app', img: 'belichtung', pos: 'top' },
+      { id: 'weissabgleich', t: 'Weißabgleich', d: 'Wie hängen Lichtfarbtemperatur und Kameraweißabgleich zusammen?', g: 'cam', k: 'Konzept', u: 'https://white-balance-sim.vercel.app', img: 'wb', pos: 'center' }
+    ];
+
+    const GROUPS = [
+      { id: 'schall', area: 'ak', name: 'Schall & Wahrnehmung' },
+      { id: 'mic', area: 'ton', name: 'Mikrofonie & Funk' },
+      { id: 'mix', area: 'ton', name: 'Mischpulte & Signalfluss' },
+      { id: 'fx', area: 'ton', name: 'Klangbearbeitung & Effekte' },
+      { id: 'cam', area: 'bild', name: 'Kamera und Bildmischer' }
+    ];
+
+    const AREAS = {
+      ak: { label: 'Akustik', color: 'var(--ak)' },
+      ton: { label: 'Tontechnik', color: 'var(--ton)' },
+      bild: { label: 'Bildtechnik', color: 'var(--bild)' }
+    };
+
+    /* Reihenfolge der Geräte in der Bühne oben (ids aus TOOLS) */
+    const STAGE = ['digitales-mischpult', 'tape-delay', 'pocket-6k-pro', 'bildmischer', 'analoges-mischpult', 'sony-zv-e1', 'mixpre3-timecode', 'funkstrecke', 'sad'];
+
+    /* ========================================================= */
+
+    const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
+    const groupOf = Object.fromEntries(GROUPS.map(g => [g.id, g]));
+    const areaOf = t => groupOf[t.g].area;
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const PLAY = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>';
+
+    document.getElementById('total-meta').textContent = TOOLS.length + ' Simulationen · direkt im Browser';
+
+    /* ---------- Klick-Statistik (GoatCounter) ---------- */
+    function track(name, title) {
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: name, title: title, event: true });
+      }
+    }
+    document.addEventListener('click', e => {
+      const a = e.target.closest('[data-track]');
+      if (a) track(a.dataset.track, a.dataset.trackTitle || '');
+    });
+
+    /* ---------- Bühne ---------- */
+    const stageTools = STAGE.map(id => byId[id]).filter(Boolean);
+    let sel = 0;
+    const $ = id => document.getElementById(id);
+
+    function renderStage() {
+      const t = stageTools[sel];
+      $('stage-pos').textContent = 'Gerätesimulation ' + (sel + 1) + ' / ' + stageTools.length;
+      $('stage-title').textContent = t.t;
+      $('stage-desc').textContent = t.d;
+      $('stage-topic').textContent = AREAS[areaOf(t)].label + ' · ' + groupOf[t.g].name;
+      for (const el of [$('stage-start'), $('stage-media')]) {
+        el.href = t.u;
+        el.dataset.trackTitle = t.t;
+      }
+      $('stage-start').dataset.track = 'buehne-button/' + t.id;
+      $('stage-media').dataset.track = 'buehne-bild/' + t.id;
+      const img = $('stage-img');
+      const media = $('stage-media');
+      media.classList.add('is-loading');
+      img.onload = () => media.classList.remove('is-loading');
+      img.src = 'img/' + t.img + '.jpg';
+      img.alt = 'Screenshot: ' + t.t;
+      $('thumbs').querySelectorAll('.thumb').forEach((b, i) => b.setAttribute('aria-pressed', i === sel ? 'true' : 'false'));
+    }
+
+    $('thumbs').innerHTML = stageTools.map((t, i) =>
+      `<button class="thumb" type="button" data-i="${i}" aria-label="${esc(t.t)} anzeigen" aria-pressed="false">
+         <img src="img/thumb/${t.img}.jpg" alt="" loading="lazy">
+       </button>`).join('');
+    $('thumbs').addEventListener('click', e => {
+      const b = e.target.closest('.thumb');
+      if (b) { sel = +b.dataset.i; renderStage(); }
+    });
+    $('stage-prev').addEventListener('click', () => { sel = (sel + stageTools.length - 1) % stageTools.length; renderStage(); });
+    $('stage-next').addEventListener('click', () => { sel = (sel + 1) % stageTools.length; renderStage(); });
+    renderStage();
+    /* Großbilder der Bühne im Hintergrund vorladen */
+    window.addEventListener('load', () => stageTools.forEach(t => { const i = new Image(); i.src = 'img/' + t.img + '.jpg'; }));
+
+    /* ---------- Filter & Suche ---------- */
+    let area = 'all';
+    let query = '';
+
+    const chipDefs = [{ id: 'all', label: 'Alle' }].concat(Object.entries(AREAS).map(([id, a]) => ({ id, label: a.label })));
+    $('chips').innerHTML = chipDefs.map(c => {
+      const n = c.id === 'all' ? TOOLS.length : TOOLS.filter(t => areaOf(t) === c.id).length;
+      return `<button class="chip" type="button" data-area="${c.id}" aria-pressed="${c.id === 'all'}">${c.label}<span class="n">${n}</span></button>`;
+    }).join('');
+    $('chips').addEventListener('click', e => {
+      const b = e.target.closest('.chip');
+      if (!b) return;
+      area = b.dataset.area;
+      $('chips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b ? 'true' : 'false'));
+      renderGroups();
+    });
+    $('search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); renderGroups(); });
+
+    function card(t) {
+      return `<a class="card" href="${esc(t.u)}" data-track="karte/${t.id}" data-track-title="${esc(t.t)}">
+        <div class="card-media">
+          <img src="img/thumb/${t.img}.jpg" alt="Screenshot: ${esc(t.t)}" loading="lazy" style="object-position:${t.pos}">
+          <span class="tag">${t.k}</span>
+          <span class="go">${PLAY}Start</span>
+        </div>
+        <div class="card-body">
+          <h3>${esc(t.t)}</h3>
+          <p>${esc(t.d)}</p>
+        </div>
+      </a>`;
+    }
+
+    function renderGroups() {
+      const match = t => (area === 'all' || areaOf(t) === area) &&
+        (!query || (t.t + ' ' + t.d).toLowerCase().includes(query));
+      const html = GROUPS.map(g => {
+        const items = TOOLS.filter(t => t.g === g.id && match(t));
+        if (!items.length) return '';
+        const a = AREAS[g.area];
+        return `<section class="group" id="g-${g.id}">
+          <div class="group-head">
+            <span class="area" style="color:${a.color}">${a.label}</span>
+            <h2>${g.name}</h2>
+            <span class="count">${items.length === 1 ? '1 Tool' : items.length + ' Tools'}</span>
+          </div>
+          <div class="grid">${items.map(card).join('')}</div>
+        </section>`;
+      }).join('');
+      $('groups').innerHTML = html || '<p class="empty">Kein Tool gefunden. Versuch einen anderen Begriff.</p>';
+    }
+    renderGroups();
+  </script>
 </body>
 </html>
